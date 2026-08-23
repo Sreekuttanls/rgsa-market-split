@@ -1,0 +1,452 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{algorithm2e}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{placeins}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\B}{\{0,1\}}
+\newcommand{\res}{\boldsymbol{\Delta}}
+\newcommand{\RGSA}{\textsc{RGSA}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{Residual-Guided Simulated Annealing for\\
+Multi-Dimensional Subset Sum}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The multi-dimensional subset sum problem, also known as Market Split, asks for a vector $x\in\{0,1\}^n$ satisfying $Ax=b$ simultaneously across $m$ integer constraints. It is a compact but severe feasibility benchmark: dense, nearly symmetric instances possess an uninformative continuous relaxation, while exact lattice enumeration and Schroeppel--Shamir methods incur rapidly increasing search or storage costs. Current exact computations solve the Quantum Optimization Benchmarking Library (QOBLIB) classes through $m=14$, but fail on the $m=15$, $N=140$ frontier within practical limits. We introduce \emph{Residual-Guided Simulated Annealing (RGSA)}, a cardinality-preserving annealing method whose central proposal replaces a selected item by the available vector nearest to the ideal compensator $w^*=w_i-\res$, where $\res=Ax-b$ is the current residual. This geometric rule turns residual information into a discrete swap without sacrificing the exploratory moves required by simulated annealing. Lagrangian projection and deterministic two-item exchange are evaluated as optional supporting components; their combination is called the Full RGSA pipeline. RGSA stores only the instance, residual, and partition, using $O(Nm)$ memory. On the flagship $(m{=}15, N{=}140, D{=}200)$ QOBLIB instance, RGSA achieves a mean residual of $104.06$ ($0.389\%$ relative error) in approximately $21$ seconds, while the Full RGSA pipeline reaches $100.37$ in approximately $22$ seconds. Across a scaling study covering $m=9$--$15$ with $D=50$, RGSA residuals grow from approximately $11.2$ to $24.2$ while mean runtimes remain under $33$ seconds. A controlled 5-seed ablation attributes a median paired residual reduction of $7.7$ units (approximately $29\%$) to RGSA relative to blind simulated annealing, with a paired 95\% bootstrap confidence interval of $[7.6,\,15.2]$ residual units across 40 instance-seed pairs; RGSA achieves strictly lower residual than blind SA in 39 of 40 pairs. We report, to our knowledge, the first published systematic heuristic results for QOBLIB Market Split at $m=12$--$15$.
+\end{abstract}
+
+\noindent\textbf{Keywords:} multi-dimensional subset sum; Market Split; simulated annealing; Lagrangian relaxation; local search; QOBLIB; combinatorial optimization
+
+\section{Introduction}\label{sec:introduction}
+Market Split is the feasibility problem of selecting a subset whose aggregate attributes simultaneously attain prescribed targets. Cornu\'ejols and Dawande introduced deliberately small, hard $0$--$1$ systems to expose weaknesses in general-purpose integer programming \cite{cornuejols1998}. Subsequent work used basis reduction, lattice enumeration, branch-and-cut, and meet-in-the-middle techniques \cite{aardal1999,aardal2000,wassermann2002,wassermann2021,wassermann2026,kempkekoch2026}. The problem has renewed significance as one of the ten classes in the Quantum Optimization Benchmarking Library (QOBLIB), a common testbed intended to make comparisons between classical and quantum optimization methods reproducible \cite{koch2025}.
+
+\paragraph{Related work: violation-guided and Lagrangian local search.}
+Using constraint violations to guide move selection is established in several heuristic traditions. Guided Local Search~\cite{gls1999} penalizes features associated with local minima. Feasibility Jump~\cite{fj2023} is a particularly close conceptual precedent: it performs stochastic guided local search over a Lagrangian relaxation, selecting variable values that reduce weighted constraint violation and adapting weights for persistent violations without requiring an LP relaxation. Shift-and-Propagate~\cite{berthold2015} likewise selects shifts using violated-constraint information. Mean-field guided simulated annealing~\cite{isakov2003} uses aggregate order parameters to direct configuration search. For number partitioning, Johnson et al.~\cite{johnson1991} evaluated simulated annealing with 2-swap neighborhoods, but their proposals were not based on a multidimensional residual target. These works establish that neither guided annealing nor violation-aware local search is new in general.
+
+\RGSA is a problem-specific specialization of this broader violation-guided local-search idea to fixed-cardinality binary partitions. For a selected item $i$, it forms the geometric ideal compensator $w^*=w_i-\res$ and chooses the available swap partner nearest to $w^*$ in the $m$-dimensional attribute space. This differs from Feasibility Jump's single-variable jump values and from penalty-based feature guidance: RGSA preserves cardinality at every move and uses the residual equation itself to define a nearest-vector proposal. To our knowledge, this particular cardinality-preserving geometric swap formulation has not been reported for Market Split/QOBLIB. The Lagrangian projection and two-item exchange used in the complete implementation are supporting components, not the central novelty claim.
+
+The QOBLIB instances are unusual benchmarks for approximation heuristics. Their stated objective is feasibility, so an exact solver either supplies a certificate $Ax=b$ or remains unresolved. Yet a near-feasible binary vector is also scientifically useful: its distance from the target measures how effectively a heuristic navigates a dense, frustrated landscape, gives an incumbent to a hybrid exact method, and supplies a transparent classical baseline for approximate quantum methods. Classical partitioning heuristics and simulated annealing have a long history \cite{kirkpatrick1983,johnson1991,mertens1999}; evolutionary approaches have also been studied for the related multidimensional two-way number partitioning problem (MDTWNPP) \cite{kojic2010,santucci2021}. To our knowledge, however, no published study reports a controlled multi-seed heuristic scaling experiment on the QOBLIB Market Split classes $m\geq12$.
+
+The gap is particularly visible at the exact frontier. Recent lattice enumeration reports solutions through $m=14$ while the $m=15$ class remains unresolved under the reported limits \cite{wassermann2026}; GPU Schroeppel--Shamir substantially extends direct subset-sum search but remains exponential \cite{kempkekoch2026}. This paper asks a complementary question: when exact feasibility is out of reach, how close can a lightweight classical heuristic get under a short, fixed budget?
+
+Our contributions are threefold.
+\begin{enumerate}
+  \item We provide, to our knowledge, the first systematic heuristic results on the published QOBLIB Market Split classes $m=12$--$15$, using 5 independent seeds on 8 flagship instances and explicitly defined residual, violation, feasibility, runtime, and memory metrics.
+  \item We formulate and evaluate \emph{Residual-Guided Simulated Annealing (RGSA)}, a geometric, direction-guided, cardinality-preserving swap neighborhood. Given a removed vector $w_i$ and residual $\res$, RGSA searches for the available item nearest to $w_i-\res$ and mixes this proposal with random swaps inside a Metropolis annealing schedule.
+  \item We evaluate Lagrangian warm-starting and deterministic two-item polishing as supporting components. Their combination with RGSA is reported as the Full RGSA pipeline, while the ablation identifies residual guidance as the dominant empirical contributor.
+\end{enumerate}
+
+The numerical tables are generated directly from the completed experiment outputs; the study contains 160 runs in total.
+
+\section{Problem Formulation and Exact-Method Barrier}\label{sec:problem}
+\subsection{Market Split}
+Let $A=[w_1,\ldots,w_N]\in\Z_{\geq0}^{m\times N}$ contain one attribute vector $w_i\in\Z_{\geq0}^{m}$ per item, and let $b\in\Z_{\geq0}^{m}$. The feasibility version of Market Split is
+\begin{equation}
+  \text{find }x\in\B^N\quad\text{such that}\quad Ax=b.
+  \label{eq:msp}
+\end{equation}
+For a heuristic candidate we define the signed residual and energy
+\begin{equation}
+  \res(x)=Ax-b,\qquad R(x)=\|\res(x)\|_2,
+  \qquad E(x)=\tfrac12R(x)^2.
+  \label{eq:residual}
+\end{equation}
+Exact feasibility is equivalent to $R(x)=0$. We search within the fixed-cardinality slice
+\begin{equation}
+  \mathcal{X}_q=\{x\in\B^N:\mathbf{1}^{\mathsf T}x=q\},
+  \label{eq:cardinality}
+\end{equation}
+where $q$ is supplied by the instance-generation convention or chosen near $N/2$. This is an algorithmic restriction, not part of the general definition in Eq.~\eqref{eq:msp}; all reported feasibility checks are made against $Ax=b$ itself.
+
+Decision feasibility is NP-complete already for $m=1$ by the classical subset-sum reduction. Multiple rows couple several subset sums through a shared binary vector. Dense positive coefficients make the induced QUBO matrix $A^{\mathsf T}A$ nearly complete, while equality targets leave little tolerance for a locally plausible but globally inconsistent choice.
+
+\subsection{QOBLIB parameterization}
+The QOBLIB generated classes use $N=10(m-1)$ columns for $m\geq8$ and nonnegative integer coefficients bounded by a range parameter $D\in\{50,100,200\}$. File names have the form \texttt{ms\_mm\_DDD\_sss.dat}; the first field records $m$, the second $D$, and the final field the instance seed or identifier. The right-hand sides are based on half row sums, with coefficients adjusted around a planted near-half-cardinality assignment so that each published benchmark is feasible. Thus the largest class in this study has $m=15$ and $N=140$.
+
+\subsection{Collapse of the continuous relaxation}
+The following elementary fact explains why a natural root relaxation gives almost no information on balanced instances.
+
+\begin{lemma}[center-point relaxation collapse]\label{lem:collapse}
+Suppose $b=\tfrac12A\mathbf{1}+\varepsilon$ with $\|\varepsilon\|_\infty\le\tfrac12$ (rounding tolerance). Then $\bar{x}=\tfrac12\mathbf{1}$ is feasible for the box relaxation $x\in[0,1]^N$, attains residual $\|\varepsilon\|_p$ for the $\ell_p$-norm objective $\|Ax-b\|_p$, and satisfies $\mathbf{1}^{\mathsf T}\bar{x}=N/2$. Consequently, the relaxation has optimal value at most $\|\varepsilon\|_p$; when this is small relative to typical integer residuals, the continuous relaxation provides almost no discriminating signal.
+\end{lemma}
+\begin{proof}
+Direct substitution gives
+$A\bar{x}-b=\tfrac12A\mathbf{1}-(\tfrac12A\mathbf{1}+\varepsilon)=-\varepsilon$ and
+$\mathbf{1}^{\mathsf T}\bar{x}=N/2$. The bound follows immediately.
+\end{proof}
+
+The lemma does not assert uniqueness: when $N>\operatorname{rank}(A)$ the relaxed zero-residual face can be high-dimensional. That qualification strengthens the computational diagnosis. Many fractional points achieve the same near-zero bound, even though the integer feasibility question may remain difficult. At the root node, branch-and-bound therefore sees a negligible lower bound and no objective gap that distinguishes promising binary assignments. Dense rows weaken propagation, similar columns create symmetric branches, and exact equality permits pruning only after enough variables have been fixed. Cutting planes can help, but the tree can still grow exponentially; this behavior is documented both for the original hard instances and recent QOBLIB studies \cite{cornuejols1998,vogel2012,wassermann2026}. For the QOBLIB instances, the right-hand sides satisfy $b_i=\lfloor\tfrac12\sum_j a_{ij}\rfloor$, so $\|\varepsilon\|_\infty\le\tfrac12$ and the continuous relaxation achieves residual $\|\varepsilon\|_2\approx1.9$ on the flagship instance---negligible compared with typical integer residuals above $100$.
+
+Lattice methods address the integrality directly. Basis reduction followed by enumeration has produced the strongest CPU results and currently reaches QOBLIB $m=14$ \cite{aardal1999,wassermann2002,wassermann2021,wassermann2026}. Schroeppel--Shamir trades exponential time for reduced, but still exponential, memory and admits effective GPU acceleration \cite{kempkekoch2026}. RGSA is not a replacement for these exact methods: it sacrifices certification to obtain a useful incumbent with linear instance storage.
+
+\section{Residual-Guided Simulated Annealing and Supporting Components}\label{sec:algorithm}
+\subsection{Core method: RGSA}
+RGSA is the principal method studied in this paper. It searches the fixed-cardinality slice by exchanging one selected item with one unselected item. The current residual determines a target attribute vector for the inserted item; a nearest-vector proposal exploits that target, while random proposals and Metropolis acceptance preserve exploration. The Lagrangian projection and two-item exchange described below are optional supporting components rather than prerequisites for RGSA.
+
+For the current selected set $S$, let $\res=\sum_{k\in S}w_k-b$. If $i\in S$ is removed and $j\in\bar S$ inserted, exact cancellation requires
+\begin{equation}
+ \res-w_i+w_j=0
+ \quad\Longleftrightarrow\quad
+ w_j=w_i-\res=:w^*.
+ \label{eq:ideal}
+\end{equation}
+RGSA therefore chooses, with probability $p_g$, the available vector nearest to $w^*$ and otherwise proposes a uniformly random insertion. This is the geometric residual-guided swap at the center of the method.
+
+\subsection{Supporting component: Lagrangian warm start}
+A nonnegative multiplier $\lambda\in\R_+^m$ projects each column to the scalar score $z_i=\lambda^{\mathsf T}w_i$. Selecting the $q$ smallest scores produces a cardinality-feasible partition. Its residual updates the multiplier, after which clipping and normalization project it back to the simplex. The method retains the best partition encountered because sorting makes the map $\lambda\mapsto x$ discontinuous.
+
+\begin{algorithm}[t]
+\caption{Lagrangian Dual Projection (Supporting Component)}\label{alg:stage1}
+\KwIn{$A=[w_1,\ldots,w_N]$, $b$, cardinality $q$, iterations $L$, step $\alpha_0$, floor $\varepsilon$}
+\KwOut{Best projected partition $x^{(1)}$}
+$\lambda\leftarrow\mathbf{1}/m$; $R_{\min}\leftarrow+\infty$; $x^{(1)}\leftarrow\mathbf{0}$\;
+\For{$t\leftarrow0$ \KwTo $L-1$}{
+  \ForEach{$i\in\{1,\ldots,N\}$}{
+    $z_i\leftarrow\lambda^{\mathsf T}w_i$\;
+  }
+  $S\leftarrow$ indices of the $q$ smallest entries of $z$\;
+  $x\leftarrow\mathbf{1}_S$; $\res\leftarrow Ax-b$\;
+  \If{$\|\res\|_2<R_{\min}$}{
+    $R_{\min}\leftarrow\|\res\|_2$; $x^{(1)}\leftarrow x$\;
+  }
+  $\alpha_t\leftarrow\alpha_0/\sqrt{t+1}$\;
+  $\widetilde\lambda\leftarrow\max\{\lambda+\alpha_t\res,\varepsilon\mathbf{1}\}$ componentwise\;
+  $\lambda\leftarrow\widetilde\lambda/(\mathbf{1}^{\mathsf T}\widetilde\lambda)$\;
+}
+\Return{$x^{(1)}$}\;
+\end{algorithm}
+
+The Lagrangian warm start is best interpreted as residual-sensitive projection learning rather than a claim of solving a smooth dual problem: median selection is piecewise constant, and the best-so-far safeguard is essential.
+
+\subsection{RGSA implementation and acceptance rule}
+The implementation uses the target in Eq.~\eqref{eq:ideal}. The guided proposal is a problem-specific instantiation of informed neighborhood generation, not a claim that violation-guided annealing is new. It is related in spirit to Guided Local Search, Feasibility Jump, and guided annealing~\cite{gls1999,fj2023,isakov2003}, but differs in using the exact residual equation to form a nearest-vector swap while preserving cardinality at every step. Mixing this proposal with uniform random insertion protects exploration when $w^*$ lies far outside the observed point cloud.
+
+\begin{algorithm}[t]
+\caption{RGSA: Residual-Guided Simulated Annealing}\label{alg:stage2}
+\KwIn{$A,b$, initial $x^{(1)}$, steps $K$, guide probability $p_g$, temperatures $T_0,T_f$}
+\KwOut{Best annealed partition $x^{(2)}$}
+$S\leftarrow\{i:x^{(1)}_i=1\}$; $\bar S\leftarrow\{1,\ldots,N\}\setminus S$\;
+$\res\leftarrow\sum_{i\in S}w_i-b$; $R\leftarrow\|\res\|_2$\;
+$x^{(2)}\leftarrow x^{(1)}$; $R_{\min}\leftarrow R$; $T\leftarrow T_0$\;
+$\gamma\leftarrow(T_f/T_0)^{1/K}$\;
+\For{$k\leftarrow1$ \KwTo $K$}{
+  choose $i$ uniformly from $S$\;
+  draw $u\sim\operatorname{Uniform}(0,1)$\;
+  \eIf{$u<p_g$}{
+    $w^*\leftarrow w_i-\res$\;
+    $j\leftarrow\argmin_{h\in\bar S}\|w_h-w^*\|_2$\;
+  }{
+    choose $j$ uniformly from $\bar S$\;
+  }
+  $\res'\leftarrow\res+w_j-w_i$; $R'\leftarrow\|\res'\|_2$; $\delta\leftarrow R'-R$\;
+  \If{$\delta<0$ \textbf{or} $\operatorname{Uniform}(0,1)<\exp(-\delta/\max\{T,\varepsilon\})$}{
+    $S\leftarrow(S\setminus\{i\})\cup\{j\}$; $\bar S\leftarrow(\bar S\setminus\{j\})\cup\{i\}$\;
+    $\res\leftarrow\res'$; $R\leftarrow R'$\;
+    \If{$R<R_{\min}$}{
+      $R_{\min}\leftarrow R$; $x^{(2)}\leftarrow\mathbf{1}_S$\;
+    }
+  }
+  $T\leftarrow\gamma T$\;
+}
+\Return{$x^{(2)}$}\;
+\end{algorithm}
+
+The Metropolis energy in Algorithm~\ref{alg:stage2} is the residual norm rather than its square. This choice keeps temperature magnitudes interpretable and matches the implementation evaluated here. Kirkpatrick et al. established the general annealing principle \cite{kirkpatrick1983}, and Johnson et al. evaluated it for number partitioning \cite{johnson1991}.
+
+\subsection{Supporting component: deterministic two-item exchange polishing}
+Annealing is followed by deterministic descent. First, improving one-for-one exchanges are accepted. Then the best exchange of two selected for two unselected items is applied; exhaustive passes continue until no strict improvement remains or a pass limit is reached. This proves only local optimality in the examined neighborhoods, not global feasibility.
+
+\begin{algorithm}[t]
+\caption{Two-Item Exchange Polish (Supporting Component)}\label{alg:stage3}
+\KwIn{$A,b$, initial $x^{(2)}$, maximum passes $P$, tolerance $\tau$}
+\KwOut{Locally polished partition $x^{(3)}$}
+$S\leftarrow\{i:x^{(2)}_i=1\}$; $\bar S\leftarrow\{1,\ldots,N\}\setminus S$\;
+$\res\leftarrow\sum_{i\in S}w_i-b$; $R\leftarrow\|\res\|_2$\;
+\ForEach{$i\in S$}{
+  \ForEach{$j\in\bar S$}{
+    $R'\leftarrow\|\res+w_j-w_i\|_2$\;
+    \If{$R'<R-\tau$}{
+      exchange $i$ and $j$ between $S$ and $\bar S$\;
+      $\res\leftarrow\res+w_j-w_i$; $R\leftarrow R'$; \textbf{break}\;
+    }
+  }
+}
+$p\leftarrow0$; $\textit{improved}\leftarrow\mathrm{true}$\;
+\While{$p<P$ \textbf{and} $\textit{improved}$}{
+  $\textit{improved}\leftarrow\mathrm{false}$; $R_{\mathrm{pass}}\leftarrow R$\;
+  $(i_1^*,i_2^*,j_1^*,j_2^*)\leftarrow\varnothing$\;
+  \ForEach{$\{i_1,i_2\}\in\binom{S}{2}$}{
+    \ForEach{$\{j_1,j_2\}\in\binom{\bar S}{2}$}{
+      $\res'\leftarrow\res+w_{j_1}+w_{j_2}-w_{i_1}-w_{i_2}$\;
+      \If{$\|\res'\|_2<R_{\mathrm{pass}}-\tau$}{
+        store this exchange as $(i_1^*,i_2^*,j_1^*,j_2^*)$\;
+        $R_{\mathrm{pass}}\leftarrow\|\res'\|_2$\;
+      }
+    }
+  }
+  \If{$(i_1^*,i_2^*,j_1^*,j_2^*)\neq\varnothing$}{
+    apply the stored two-item exchange; recompute $\res$ and $R$\;
+    $\textit{improved}\leftarrow\mathrm{true}$\;
+  }
+  $p\leftarrow p+1$\;
+}
+$x^{(3)}\leftarrow\mathbf{1}_S$; \Return{$x^{(3)}$}\;
+\end{algorithm}
+
+\subsection{Full RGSA pipeline}
+The complete implementation optionally composes the supporting components around RGSA: Lagrangian projection supplies the initial partition, RGSA performs the main annealing search, and deterministic one- and two-item exchanges polish its best incumbent. We call this combination the \emph{Full RGSA pipeline}. The benchmark configuration identifier remains \texttt{full\_esa} for reproducibility, but ESA is not used as the scientific name of the method.
+
+\subsection{Complexity}
+Storing $A$, the current and best assignments, index sets, $\lambda$, and residual vectors requires $O(Nm)$ memory. One Lagrangian iteration costs $O(Nm+N\log N)$ with comparison sorting. In a guided RGSA step, evaluating all candidates in $\bar S$ costs $O(Nm)$; a random step costs $O(m)$. Thus $K$ annealing steps cost $O(KNm)$ in the worst case, or $O(K[p_gNm+(1-p_g)m])$ in expectation. For RGSA, guidance is $O(Nm)$ per annealing step and $O(KNm)$ over a run. Batched or indexed nearest-neighbor search may reduce constants or asymptotic query time.
+
+A literal exhaustive two-for-two pass costs
+$O\bigl(\binom{q}{2}\binom{N-q}{2}m\bigr)=O(N^4m)$ time. Pair-sum batching reduces interpreter overhead but not the number of candidate combinations. The reported memory bound excludes optional materialization of all pair-pair residuals; the implementation stores only one side's $O(N^2m)$ pair sums and can stream candidates. For the benchmark sizes considered, RGSA dominates under a small polishing-pass limit.
+
+\section{Experimental Setup}\label{sec:setup}
+\subsection{Instances and protocol}
+We evaluate flagship instances at each scale: one instance per $(m,D)$ class for $m\in\{9,10,11,12,13,14,15\}$ with $D=50$, plus the $(15,140,200)$ flagship---giving 8 instances total. Each stochastic configuration is run with 5 independent seeds (42--46). Parameters are fixed: $L=3000$ Lagrangian iterations, $K=150{,}000$ SA steps, $p_g=0.65$, $T_0=600$, $T_f=10^{-3}$, and one exhaustive two-item pass. Cardinality is set to $\lfloor N/2 \rfloor$ without consulting reference solutions.
+
+\subsection{Metrics}
+For each run we report:
+\begin{align}
+ R(x)&=\|Ax-b\|_2 &&\text{(Euclidean residual)},\nonumber\\
+ R_{\mathrm{rel}}(x)&=100\,\|Ax-b\|_2/\max\{\|b\|_2,1\} &&\text{(relative residual, percent)},\nonumber\\
+ V_{\max}(x)&=\|Ax-b\|_\infty &&\text{(maximum row violation)},\nonumber\\
+ F(x)&=\mathbf{1}[Ax=b] &&\text{(exact feasibility)},\label{eq:metrics}
+\end{align}
+plus wall-clock time and peak resident memory. We aggregate medians and interquartile ranges over seeds and report exact-feasibility rates with binomial confidence intervals. Pairwise comparisons use common seeds and instances; the primary ablation statistic is the percentage change in median residual.
+
+\subsection{Baselines and ablations}
+The Full RGSA pipeline is compared with four controlled configurations under the same annealing-step budget whenever applicable. Raw configuration identifiers are retained in the benchmark records; their paper-facing names are:
+\begin{enumerate}
+  \item \textbf{Blind SA} (`random\_blind\_sa'): random cardinality-feasible initialization, $p_g=0$, no polish;
+  \item \textbf{Lagrangian + Blind SA} (`lagrangian\_blind\_sa'): Stage 1 followed by $p_g=0$ annealing;
+  \item \textbf{RGSA} (`random\_guided\_sa'): random initialization, $p_g=0.65$, no polish;
+  \item \textbf{Full RGSA pipeline} (`full\_esa'): Lagrangian warm start, RGSA, and deterministic polishing.
+\end{enumerate}
+This design isolates the main effect of residual guidance by comparing Blind SA and RGSA, tests the warm start by comparing RGSA with the Full RGSA pipeline, and measures polishing by comparing the RGSA incumbent with the final pipeline result.
+
+\subsection{Hardware and reproducibility}
+Experiments were executed on an Apple Silicon (arm64) system running macOS, using Python~3.9.6 with NumPy~1.26.4 and a single solver thread per run. No GPU is used by RGSA. The array payload for the largest instance ($m{=}15$, $N{=}140$) is under $50$~KB (instance, residual, partition, and multiplier arrays); Python interpreter overhead is not included in this figure. The instance parser, solver, seed list, raw per-run records (JSON), and table-generation scripts accompany the paper at \url{https://anonymous.4open.science/r/rgsa-market-split-XXXX}.
+
+\section{Results}\label{sec:results}
+
+\subsection{RGSA versus classical baselines across all scales}
+
+Table~\ref{tab:comprehensive} presents the central experimental result: a head-to-head comparison of RGSA and the Full RGSA pipeline with blind and Lagrangian baselines on every tested QOBLIB Market Split class from $m=9$ ($N=80$) to $m=15$ ($N=140$). Each cell reports the mean $\pm$ standard deviation of the $\ell_2$ residual $\|Ax-b\|_2$ over 5 independent seeds, along with mean wall-clock time in seconds.
+
+\input{tables/comprehensive_table.tex}
+
+\textbf{Key observations:}
+\begin{itemize}
+\item RGSA and the Full RGSA pipeline consistently dominate the blind methods, with residual reductions of approximately 23--36\% across the tested scales.
+\item The Full RGSA pipeline is the best method on 5 of 8 instance classes by mean residual. RGSA, without Lagrangian warm-starting or polishing, is best on the remaining 3 classes; the differences between RGSA and the Full RGSA pipeline are small.
+\item Blind SA deteriorates rapidly with increasing $m$: its mean residual grows from 16.8 ($m=9$) to 142.3 ($m=15$, $D=200$). RGSA grows more moderately, from approximately 11.2 to 104.1 on the same classes, showing that the residual-guided neighborhood remains effective as dimensionality increases.
+\item The Lagrangian warm start and polishing provide only a modest incremental benefit when combined with RGSA: on the flagship instance, RGSA achieves 104.1 while the Full RGSA pipeline achieves 100.4. The paired comparison across the study is not statistically significant at the reported bootstrap interval.
+\item RGSA costs more per move than blind SA because of the $O(Nm)$ nearest-vector scan; RGSA and the Full RGSA pipeline require approximately 15--32~seconds, compared with 3--6~seconds for blind methods.
+\end{itemize}
+
+\subsection{Best achieved residuals}
+
+Table~\ref{tab:best-residuals} reports the minimum residual achieved over 5 seeds for each method and class. RGSA obtains the best observed residual on the hardest $m=15$ classes, while the Full RGSA pipeline is best on several lower-dimensional classes.
+
+\input{tables/best_residuals_table.tex}
+
+\subsection{Maximum row violations and feasibility}
+
+Table~\ref{tab:violations} reports the mean maximum row violation $V_{\max}(x)=\|Ax-b\|_\infty$ across seeds. No method achieved exact feasibility ($\|Ax-b\|_2=0$) on any instance; the overall feasibility rate across all 160 runs is 0\% (Wilson 95\% confidence interval: $[0,\,2.3\%]$). RGSA achieves substantially smaller $V_{\max}$ than the Blind SA and Lagrangian baselines; the Full RGSA pipeline further reduces $V_{\max}$ through deterministic polishing.
+
+\input{tables/violations_table.tex}
+
+\subsection{RGSA scaling}
+
+Table~\ref{tab:rgsa-scaling} isolates RGSA results to characterize the scaling of the centerpiece method. For $D=50$, the RGSA residual grows from approximately $11.2$ at $m=9$ to $24.2$ at $m=15$, while mean runtime grows from $14$ to $33$~seconds. The coefficient range $D$ has a strong multiplicative effect on residual magnitude: at $m=15$, the $D=200$ RGSA residual is approximately four times larger than at $D=50$.
+
+\input{tables/scaling_table.tex}
+
+\subsection{Supporting-component ablation}
+
+Table~\ref{tab:rgsa-ablation} reports the component ablation on \texttt{ms\_15\_200\_000} ($m=15$, $N=140$, $D=200$). The main comparison is RGSA versus Blind SA: the guided swap reduces the median residual by 29\%, with a paired 95\% bootstrap interval of $[7.6,\,15.2]$ residual units over the 40 instance-seed comparisons in the full study. The Lagrangian warm start and deterministic polishing are then evaluated as optional enhancements around RGSA.
+
+\input{tables/ablation_table.tex}
+
+The improvement is consistent: across all 40 instance-seed pairs in the full study, RGSA residual was strictly lower than Blind SA residual in 39 of 40 cases. The Full RGSA pipeline is nevertheless useful as a robust implementation variant, even though its average advantage over RGSA is small.
+
+\subsection{RGSA and the Full RGSA pipeline}
+
+The Full RGSA pipeline combines the Lagrangian warm start and deterministic polishing with RGSA. On the flagship instance, it reaches mean residual $100.4$, compared with $104.1$ for RGSA alone. Across the paired study, the Full RGSA pipeline achieves a modest mean improvement of approximately $3.7$ residual units over RGSA on the flagship instance; on the remaining classes the differences are smaller and not consistently in one direction. This supports treating the two supporting components as optional rather than as the source of the principal performance gain.
+
+\subsection{Comparison with published exact methods}
+
+Table~\ref{tab:rgsa-literature} contrasts RGSA runtimes with published exact-solver results. For $m\leq10$, Wassermann's lattice enumeration solves instances exactly in under 1~second---RGSA cannot compete on these solvable instances and is not intended to. At $m=12$--$14$, lattice enumeration requires 617 to 140,823~seconds (minutes to days) per instance; RGSA produces approximate solutions in approximately 17--27~seconds. At $m=15$, no exact method has reported any solution; RGSA produces residual approximately $24.2$ for $D=50$ and $104.1$ for $D=200$ in under $33$~seconds.
+
+\input{tables/literature_comparison.tex}
+
+\textbf{Important distinction:} Exact methods return feasibility certificates ($\|Ax-b\|_2=0$); RGSA returns approximations. The runtime comparison is therefore not like-for-like in solution quality---it shows that RGSA provides useful approximate solutions in a regime where exact computation is currently impractical.
+
+\FloatBarrier
+\section{Discussion}\label{sec:discussion}
+\subsection{Positioning relative to prior guided search}
+The closest conceptual baseline is Feasibility Jump~\cite{fj2023}: both methods use violation information within a Lagrangian or residual-guided local-search framework. The distinction is structural. Feasibility Jump handles general mixed-integer variables and changes one variable's value using weighted violation penalties and jump values. RGSA restricts the state space to fixed-cardinality binary partitions and exchanges one selected item with one unselected item; its candidate is obtained by nearest-vector search around $w_i-\res$. Guided Local Search~\cite{gls1999}, Shift-and-Propagate~\cite{berthold2015}, mean-field guided annealing~\cite{isakov2003}, and 2-swap annealing for number partitioning~\cite{johnson1991} provide additional precedents for penalized, violation-aware, aggregate-guided, and exchange-based search. RGSA's narrower claim is therefore the geometric compensator and nearest-vector cardinality-preserving specialization for Market Split/QOBLIB, not guided search itself. The results also show that RGSA without the Lagrangian warm start is often as strong as the Full RGSA pipeline; guidance is the dominant component, while warm-starting and polishing are optional enhancements.
+
+\subsection{What direction guidance contributes}
+Blind exchange proposals ignore the sign and geometry of the current error. Equation~\eqref{eq:ideal} supplies a direct target in attribute space: if the ideal vector exists in the unselected pile, the proposed exchange reaches feasibility in one move. More generally, nearest-vector selection minimizes the residual norm after removal of $i$, because
+\[
+ \|w_j-(w_i-\res)\|_2=\|\res+w_j-w_i\|_2.
+\]
+Thus guidance is locally greedy conditional on $i$, while the Metropolis rule and random-proposal mixture permit uphill motion. The approach differs from sorting alone because it acts on a discrete local neighborhood and differs from steepest descent because temperature retains controlled nonmonotonicity.
+
+\subsection{Limitations}
+RGSA is approximate. A nonzero residual carries no lower bound on the best attainable residual, and failure to reach zero proves neither infeasibility nor hardness. Conversely, a zero residual is readily checkable and is an exact feasibility witness. Results depend on temperature, budget, cardinality, scaling across rows, and random seed. The guided scan also increases per-step work from $O(m)$ to $O(Nm)$ in the current implementation. Finally, claims of ``first'' results are scoped to the published QOBLIB Market Split heuristic literature found in our review; they do not exclude unpublished solver runs or studies under another problem name.
+
+\paragraph{Cardinality restriction.}
+All reported experiments fix the cardinality to $q=\lfloor N/2\rfloor=70$ for $N=140$. This is an algorithmic restriction: the planted feasible solution of \texttt{ms\_15\_200\_000} has cardinality~$71$ \cite{koch2025}, so the searched slice $\mathcal{X}_{70}$ may not contain any exact feasible point. A small follow-up cardinality sweep on the flagship instance (3 seeds per configuration, full pipeline) found mean residuals of $108.4$ at $q{=}67$, $100.0$ at $q{=}71$, and $99.4$ at $q{=}72$, confirming that performance is flat within $q\in[67,72]$ and slightly better near the planted cardinality. We adopt $q{=}\lfloor N/2\rfloor$ as a transparent, instance-independent default; variable-cardinality moves are left to future work.
+
+The LP-collapse lemma explains weak bounds but does not imply that every branch-and-cut implementation explores the full tree. Presolve, symmetry handling, cutting planes, and primal heuristics can materially change performance. Likewise, comparisons across papers involve different machines, stopping criteria, and exactness requirements and must not be interpreted as standardized speedups.
+
+\subsection{Complementarity with lattice methods}
+Lattice enumeration remains preferable when certification is required and the class lies within its practical range \cite{wassermann2002,wassermann2021,wassermann2026}. RGSA occupies a complementary role: it returns a low-residual vector quickly, can identify influential residual directions, and can generate incumbents or discrepancy orderings. A hybrid could center lattice enumeration around the RGSA assignment, prioritize basis directions suggested by $\res$, or use RGSA to define a restricted Hamming ball searched exactly.
+
+\subsection{Future work}
+The most immediate extension is a hybrid lattice--RGSA solver that preserves exactness while exploiting a heuristic incumbent. A second priority is to implement or adapt Feasibility Jump~\cite{fj2023} to the fixed-cardinality Market Split setting and compare it with RGSA under equal move, time, and initialization budgets; this would test whether the geometric nearest-vector rule adds value beyond a general violation-guided jump heuristic. The guided scan is also embarrassingly parallel over candidate $j$ values and well suited to GPU vectorization; multiple seeds can run independently. Approximate nearest-neighbor indexes may reduce proposal cost, although a changing target and modest $N$ make careful evaluation necessary. Further work should study adaptive $p_g$, row whitening, reheating, variable-cardinality moves, larger exchange neighborhoods, and transfer to MDTWNPP instances \cite{kojic2010,santucci2021}.
+
+\section{Conclusion}\label{sec:conclusion}
+We presented Residual-Guided Simulated Annealing (RGSA), a memory-light method for dense multi-dimensional subset sum. RGSA converts the exact residual equation into compensating swap proposals while preserving cardinality and retaining simulated annealing's nonmonotone exploration. Lagrangian projection and deterministic two-item exchange are optional supporting components; their combination is the Full RGSA pipeline. RGSA uses $O(Nm)$ instance storage and $O(KNm)$ worst-case annealing time, enabling short CPU runs at the $m=15$, $N=140$ QOBLIB frontier where exact methods are currently impractical.
+
+Across our scaling study ($m=9$--$15$, $D=50$; plus $m=15$, $D=200$), RGSA achieved mean residuals from approximately $11.2$ to $104.1$ in under $33$~seconds per instance, with the Full RGSA pipeline improving the flagship result to $100.4$. The array payload for all instances is under $50$~KB. On the flagship instance, no run achieved exact feasibility (0/160 across all configurations). The residual-guided swap contributes a median paired residual reduction of $7.7$ units (approximately $29\%$) over Blind SA (95\% CI: $[7.6,\,15.2]$), with RGSA achieving strictly lower residual in 39 of 40 instance-seed pairs. RGSA should be read as a reproducible approximate baseline and a candidate front end for exact search, not as a feasibility certificate.
+
+\section*{Data and Code Availability}
+Source code, QOBLIB instance identifiers, seed-level output records (JSON), environment manifests, and table-generation scripts are available at \url{https://anonymous.4open.science/r/rgsa-market-split-XXXX}. QOBLIB is available from \url{https://github.com/ZIB-AOPT/QOBLIB}.
+
+\section*{Declarations}
+\textbf{Funding:} None.
+\quad
+\textbf{Competing interests:} The authors declare no competing interests.
+
+\begin{thebibliography}{99}
+
+\bibitem{cornuejols1998}
+Cornu\'ejols, G., Dawande, M. (1998).
+A class of hard small 0--1 programs.
+In: Bixby, R.E., Boyd, E.A., R\'ios-Mercado, R.Z. (eds),
+\emph{Integer Programming and Combinatorial Optimization}, LNCS 1412, 284--293.
+Springer. \url{https://doi.org/10.1007/3-540-69346-7_22}.
+
+\bibitem{aardal1999}
+Aardal, K., Bixby, R.E., Hurkens, C.A.J., Lenstra, A.K., Smeltink, J.W. (1999).
+Market split and basis reduction: Towards a solution of the Cornu\'ejols--Dawande instances.
+In: \emph{Integer Programming and Combinatorial Optimization}, LNCS 1610, 1--16.
+Springer. \url{https://doi.org/10.1007/3-540-48777-8_1}.
+
+\bibitem{aardal2000}
+Aardal, K., Hurkens, C.A.J., Lenstra, A.K. (2000).
+Solving a system of linear Diophantine equations with lower and upper bounds on the variables.
+\emph{Mathematics of Operations Research}, 25(3), 427--442.
+
+\bibitem{wassermann2002}
+Wassermann, A. (2002).
+Attacking the market split problem with lattice point enumeration.
+\emph{Journal of Combinatorial Optimization}, 6, 5--16.
+\url{https://doi.org/10.1023/A:1013355015853}.
+
+\bibitem{wassermann2021}
+Wassermann, A. (2021).
+Search for combinatorial objects using lattice algorithms---revisited.
+In: Flocchini, P., Moura, L. (eds), \emph{Combinatorial Algorithms}, 20--33.
+Springer. \url{https://doi.org/10.1007/978-3-030-79987-8_2}.
+
+\bibitem{wassermann2026}
+Wassermann, A. (2026).
+Solving the market split problem with lattice enumeration.
+\emph{arXiv preprint arXiv:2508.08702}, version 2.
+\url{https://arxiv.org/abs/2508.08702}.
+
+\bibitem{kempkekoch2026}
+Kempke, N.C., Koch, T. (2026).
+A GPU accelerated variant of Schroeppel--Shamir's algorithm for solving the market split problem.
+\emph{arXiv preprint arXiv:2507.05045}.
+\url{https://arxiv.org/abs/2507.05045}.
+
+\bibitem{koch2025}
+Koch, T., Bernal Neira, D.E., Chen, Y., Cortiana, G., Egger, D.J., et al. (2025).
+Quantum Optimization Benchmarking Library: The Intractable Decathlon.
+\emph{arXiv preprint arXiv:2504.03832}.
+\url{https://arxiv.org/abs/2504.03832}.
+
+\bibitem{vogel2012}
+Vogel, A. (2012).
+Solving the market split problem via branch-and-cut.
+Technical report, Zuse Institute Berlin.
+
+\bibitem{johnson1991}
+Johnson, D.S., Aragon, C.R., McGeoch, L.A., Schevon, C. (1991).
+Optimization by simulated annealing: An experimental evaluation; Part II, graph coloring and number partitioning.
+\emph{Operations Research}, 39(3), 378--406.
+\url{https://doi.org/10.1287/opre.39.3.378}.
+
+\bibitem{mertens1999}
+Mertens, S. (1999).
+A complete anytime algorithm for balanced number partitioning.
+Technical report, Otto-von-Guericke University Magdeburg.
+
+\bibitem{kojic2010}
+Koji\'c, J. (2010).
+A new heuristic algorithm for the multidimensional two-way number partitioning problem.
+\emph{Computers \& Operations Research}, 37, 1949--1955.
+
+\bibitem{santucci2021}
+Santucci, V., Baioletti, M., Di Bari, G. (2021).
+An effective evolutionary algorithm for the multidimensional two-way number partitioning problem.
+\emph{Expert Systems with Applications}, 184, 115453.
+
+\bibitem{fj2023}
+Luteberget, B., Sartor, G. (2023).
+Feasibility Jump: an LP-free Lagrangian MIP heuristic.
+\emph{Mathematical Programming Computation}, 15, 365--388.
+\url{https://doi.org/10.1007/s12532-023-00234-8}.
+
+\bibitem{gls1999}
+Voudouris, C., Tsang, E.P.K. (1999).
+Guided local search and its application to the traveling salesman problem.
+\emph{European Journal of Operational Research}, 113(2), 469--499.
+
+\bibitem{berthold2015}
+Berthold, T., Hendel, G. (2015).
+Shift-and-propagate.
+\emph{Journal of Heuristics}, 21(1), 73--106.
+
+\bibitem{isakov2003}
+Isakov, S.V., Zinn-Justin, P. (2003).
+Guided simulated annealing method for optimization problems.
+\emph{arXiv preprint cond-mat/0302137}.
+
+\bibitem{kirkpatrick1983}
+Kirkpatrick, S., Gelatt, C.D., Vecchi, M.P. (1983).
+Optimization by simulated annealing.
+\emph{Science}, 220(4598), 671--680.
+\url{https://doi.org/10.1126/science.220.4598.671}.
+
+\end{thebibliography}
+
+\end{document}

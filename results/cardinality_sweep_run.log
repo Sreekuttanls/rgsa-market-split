@@ -1,0 +1,163 @@
+screen strategy=prefix k=60 seed=42
+screen strategy=prefix k=61 seed=42
+screen strategy=prefix k=62 seed=42
+screen strategy=prefix k=63 seed=42
+screen strategy=prefix k=64 seed=42
+screen strategy=prefix k=65 seed=42
+screen strategy=prefix k=66 seed=42
+screen strategy=prefix k=67 seed=42
+screen strategy=prefix k=68 seed=42
+screen strategy=prefix k=69 seed=42
+screen strategy=prefix k=70 seed=42
+screen strategy=prefix k=71 seed=42
+screen strategy=prefix k=72 seed=42
+screen strategy=prefix k=73 seed=42
+screen strategy=prefix k=74 seed=42
+screen strategy=prefix k=75 seed=42
+screen strategy=prefix k=76 seed=42
+screen strategy=prefix k=77 seed=42
+screen strategy=prefix k=78 seed=42
+screen strategy=prefix k=79 seed=42
+screen strategy=prefix k=80 seed=42
+screen strategy=alternating k=60 seed=42
+screen strategy=alternating k=61 seed=42
+screen strategy=alternating k=62 seed=42
+screen strategy=alternating k=63 seed=42
+screen strategy=alternating k=64 seed=42
+screen strategy=alternating k=65 seed=42
+screen strategy=alternating k=66 seed=42
+screen strategy=alternating k=67 seed=42
+screen strategy=alternating k=68 seed=42
+screen strategy=alternating k=69 seed=42
+screen strategy=alternating k=70 seed=42
+screen strategy=alternating k=71 seed=42
+screen strategy=alternating k=72 seed=42
+screen strategy=alternating k=73 seed=42
+screen strategy=alternating k=74 seed=42
+screen strategy=alternating k=75 seed=42
+screen strategy=alternating k=76 seed=42
+screen strategy=alternating k=77 seed=42
+screen strategy=alternating k=78 seed=42
+screen strategy=alternating k=79 seed=42
+screen strategy=alternating k=80 seed=42
+screening baseline prefix/k=71 mean residual=88.662281
+selected candidates=5
+full strategy=alternating k=67 seed=42
+full strategy=alternating k=67 seed=43
+full strategy=alternating k=67 seed=44
+full strategy=prefix k=71 seed=42
+full strategy=prefix k=71 seed=43
+full strategy=prefix k=71 seed=44
+full strategy=prefix k=72 seed=42
+full strategy=prefix k=72 seed=43
+full strategy=prefix k=72 seed=44
+full strategy=alternating k=72 seed=42
+full strategy=alternating k=72 seed=43
+full strategy=alternating k=72 seed=44
+full strategy=prefix k=67 seed=42
+full strategy=prefix k=67 seed=43
+full strategy=prefix k=67 seed=44
+{
+  "baseline": {
+    "strategy": "prefix",
+    "cardinality": 71,
+    "num_runs": 1,
+    "mean_residual": 88.66228059327146,
+    "median_residual": 88.66228059327146,
+    "min_residual": 88.66228059327146,
+    "std_residual": 0.0,
+    "mean_relative_error_pct": 0.331449250206352,
+    "max_abs_violation": 42.0,
+    "feasible_runs": 0,
+    "mean_time_sec": 4.501472234725952
+  },
+  "selected_candidates": [
+    {
+      "strategy": "alternating",
+      "cardinality": 67
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 71
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 72
+    },
+    {
+      "strategy": "alternating",
+      "cardinality": 72
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 67
+    }
+  ],
+  "full_summary": [
+    {
+      "strategy": "alternating",
+      "cardinality": 67,
+      "num_runs": 3,
+      "mean_residual": 112.48340410526293,
+      "median_residual": 117.29023829799307,
+      "min_residual": 99.22197337283713,
+      "std_residual": 9.494760005328567,
+      "mean_relative_error_pct": 0.42050057478644254,
+      "max_abs_violation": 79.0,
+      "feasible_runs": 0,
+      "mean_time_sec": 54.54477413495382
+    },
+    {
+      "strategy": "alternating",
+      "cardinality": 72,
+      "num_runs": 3,
+      "mean_residual": 100.26959423122145,
+      "median_residual": 99.21189444819608,
+      "min_residual": 94.95261976375376,
+      "std_residual": 4.831335844208931,
+      "mean_relative_error_pct": 0.37484126963631975,
+      "max_abs_violation": 71.0,
+      "feasible_runs": 0,
+      "mean_time_sec": 78.9648145834605
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 67,
+      "num_runs": 3,
+      "mean_residual": 104.2125680836334,
+      "median_residual": 105.23307464861035,
+      "min_residual": 99.36297097007517,
+      "std_residual": 3.6157968343657223,
+      "mean_relative_error_pct": 0.3895814242795376,
+      "max_abs_violation": 75.0,
+      "feasible_runs": 0,
+      "mean_time_sec": 53.382602294286094
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 71,
+      "num_runs": 3,
+      "mean_residual": 99.97144067633468,
+      "median_residual": 104.17773274553444,
+      "min_residual": 91.02746838180221,
+      "std_residual": 6.328063086871734,
+      "mean_relative_error_pct": 0.37372667195676185,
+      "max_abs_violation": 66.0,
+      "feasible_runs": 0,
+      "mean_time_sec": 39.91081444422404
+    },
+    {
+      "strategy": "prefix",
+      "cardinality": 72,
+      "num_runs": 3,
+      "mean_residual": 98.61627325768131,
+      "median_residual": 102.40605450851038,
+      "min_residual": 90.80748867797193,
+      "std_residual": 5.522437453968836,
+      "mean_relative_error_pct": 0.3686606030285639,
+      "max_abs_violation": 72.0,
+      "feasible_runs": 0,
+      "mean_time_sec": 49.28102238972982
+    }
+  ]
+}

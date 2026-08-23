@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+# NOTE (review period): author identity is anonymized for double-anonymous
+# code sharing. Restore real author metadata, repository URLs, and the
+# Zenodo DOI at camera-ready per journal policy.
+authors:
+  - name: Anonymous
+title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / Market Split"
+version: 1.0.0
+date-released: 2026-08-23
+license: MIT
+keywords:
+  - multi-dimensional subset sum
+  - market split
+  - simulated annealing
+  - combinatorial optimization
+  - QOBLIB
+  - heuristic optimization
+  - residual-guided
+preferred-citation:
+  type: article
+  authors:
+    - name: Anonymous
+  title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum"
+  journal: "Journal of Heuristics"
+  year: 2026
