@@ -1,189 +1,155 @@
 #!/usr/bin/env python3
-"""Verify that prose claims in esa_paper.tex match generated table data.
+"""Verify manuscript-facing numerical claims against committed benchmark data.
 
-Checks performed:
- 1. Flagship residuals: RGSA~104.06, Full~100.37
- 2. Scaling D=50: RGSA residual range 11.2–24.2, runtime <33s
- 3. D=200/D=50 ratio at m=15 is ~4x
- 4. 39/40 pairs RGSA < Blind
- 5. 0/160 exact feasibility
- 6. RGSA smallest V_max on m=15 classes
+This checker performs no benchmark execution.  It validates the canonical
+result artifact, recomputes the headline statistics, and checks the values used
+in the manuscript and generated tables.
 """
 
-import json
+from __future__ import annotations
+
+import argparse
+import math
 import sys
+from pathlib import Path
+from typing import Sequence
 
-INSTANCE_MAP = {
-    "ms_09_050_000.dat": "ms_09_050_000",
-    "ms_10_050_000.dat": "ms_10_050_000",
-    "ms_11_050_000.dat": "ms_11_050_000",
-    "ms_12_050_000.dat": "ms_12_050_000",
-    "ms_13_050_000.dat": "ms_13_050_000",
-    "ms_14_050_000.dat": "ms_14_050_000",
-    "ms_15_050_000.dat": "ms_15_050_000",
-    "ms_15_200_000.dat": "ms_15_200_000",
-}
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
 
-CONFIG_SHORT = {
-    "random_blind_sa": "sa",
-    "lagrangian_blind_sa": "lag",
-    "random_guided_sa": "rgsa",
-    "full_esa": "full",
-}
+from src.paper_statistics import (
+    RGSA_CONFIG,
+    REFERENCE_CONFIG,
+    compute_improvement_stats,
+    compute_per_class_statistics,
+    load_results,
+)
+from src.validate_publication import DEFAULT_RESULTS, validate_results
 
 
-def load_results(json_path: str) -> list[dict]:
-    with open(json_path) as f:
-        raw = json.load(f)
-    runs = raw.get("runs", raw) if isinstance(raw, dict) else raw
-    for r in runs:
-        r["_iid"] = INSTANCE_MAP.get(r["instance"], r["instance"])
-        r["_cfg"] = CONFIG_SHORT.get(r["config_name"], r["config_name"])
-    return runs
+FLAGSHIP = (15, 200)
 
 
-def flagship_check(data: list[dict], tol: float = 1.0) -> bool:
-    flag = [r for r in data if r["_iid"] == "ms_15_200_000"]
-    rg = [r for r in flag if r["_cfg"] == "rgsa"]
-    full = [r for r in flag if r["_cfg"] == "full"]
-    rg_mean = sum(r["final_residual"] for r in rg) / len(rg)
-    full_mean = sum(r["final_residual"] for r in full) / len(full)
-    ok = True
-    if abs(rg_mean - 104.06) > tol:
-        print(f"  FAIL: flagship RGSA mean {rg_mean:.2f}, expected ~104.06")
-        ok = False
-    if abs(full_mean - 100.37) > tol:
-        print(f"  FAIL: flagship Full mean {full_mean:.2f}, expected ~100.37")
-        ok = False
-    if ok:
-        print(f"  PASS: flagship residuals (RGSA={rg_mean:.2f}, Full={full_mean:.2f})")
-    return ok
+def _mean(runs, predicate, field="final_residual") -> float:
+    values = [float(run[field]) for run in runs if predicate(run)]
+    if not values:
+        raise AssertionError("claim group is empty")
+    return sum(values) / len(values)
 
 
-def scaling_d50_check(data: list[dict], tol: float = 0.5) -> bool:
-    ok = True
-    min_r, max_r = float("inf"), float("-inf")
-    min_t, max_t = float("inf"), float("-inf")
-    for m in range(9, 16):
-        iid = f"ms_{m:02d}_050_000"
-        runs = [r for r in data if r["_iid"] == iid and r["_cfg"] == "rgsa"]
-        if not runs:
-            print(f"  FAIL: no data for {iid}")
-            ok = False
-            continue
-        mean_r = sum(r["final_residual"] for r in runs) / len(runs)
-        mean_t = sum(r["total_time_sec"] for r in runs) / len(runs)
-        min_r = min(min_r, mean_r)
-        max_r = max(max_r, mean_r)
-        min_t = min(min_t, mean_t)
-        max_t = max(max_t, mean_t)
-    if abs(min_r - 11.2) > tol:
-        print(f"  FAIL: D=50 min residual {min_r:.2f}, expected ~11.2")
-        ok = False
-    if abs(max_r - 24.2) > tol:
-        print(f"  FAIL: D=50 max residual {max_r:.2f}, expected ~24.2")
-        ok = False
-    if max_t > 34:
-        print(f"  FAIL: D=50 max runtime {max_t:.1f}s, expected <33s")
-        ok = False
-    if ok:
-        print(f"  PASS: D=50 scaling (residuals {min_r:.1f}–{max_r:.1f}, times {min_t:.0f}–{max_t:.0f}s)")
-    return ok
+def _check(condition: bool, message: str) -> bool:
+    if condition:
+        print(f"  PASS: {message}")
+        return True
+    print(f"  FAIL: {message}")
+    return False
 
 
-def ratio_d200_check(data: list[dict]) -> bool:
-    m15_d50 = [r for r in data if r["_iid"] == "ms_15_050_000" and r["_cfg"] == "rgsa"]
-    m15_d200 = [r for r in data if r["_iid"] == "ms_15_200_000" and r["_cfg"] == "rgsa"]
-    r50 = sum(r["final_residual"] for r in m15_d50) / len(m15_d50)
-    r200 = sum(r["final_residual"] for r in m15_d200) / len(m15_d200)
+def run_checks(data: list[dict]) -> list[tuple[str, bool]]:
+    results: list[tuple[str, bool]] = []
+    class_statistics = compute_per_class_statistics(data)
+
+    flagship_rgsa = _mean(data, lambda r: (r["m"], r["D"]) == FLAGSHIP and r["config"] == RGSA_CONFIG)
+    flagship_full = _mean(data, lambda r: (r["m"], r["D"]) == FLAGSHIP and r["config"] == "full_esa")
+    results.append(("Flagship residuals", _check(
+        abs(flagship_rgsa - 104.06) <= 1.0 and abs(flagship_full - 100.37) <= 1.0,
+        f"flagship residuals (RGSA={flagship_rgsa:.2f}, Full={flagship_full:.2f})",
+    )))
+
+    d50_rgsa = [run for run in data if run["D"] == 50 and run["config"] == RGSA_CONFIG]
+    d50_means = [
+        _mean(d50_rgsa, lambda r, m=m: r["m"] == m)
+        for m in range(9, 16)
+    ]
+    d50_times = [
+        _mean(d50_rgsa, lambda r, m=m: r["m"] == m, field="total_time_sec")
+        for m in range(9, 16)
+    ]
+    scaling_ok = (
+        abs(min(d50_means) - 11.2) <= 0.5
+        and abs(max(d50_means) - 24.2) <= 0.5
+        and max(d50_times) < 34.0
+    )
+    results.append(("Scaling D=50", _check(
+        scaling_ok,
+        f"D=50 scaling (residuals {min(d50_means):.1f}–{max(d50_means):.1f}, "
+        f"times {min(d50_times):.0f}–{max(d50_times):.0f}s)",
+    )))
+
+    r50 = _mean(data, lambda r: (r["m"], r["D"]) == (15, 50) and r["config"] == RGSA_CONFIG)
+    r200 = flagship_rgsa
     ratio = r200 / r50
-    ok = 3.5 < ratio < 4.5
-    if ok:
-        print(f"  PASS: D=200/D=50 ratio {ratio:.1f}x (~4x claimed)")
-    else:
-        print(f"  FAIL: D=200/D=50 ratio {ratio:.1f}x, expected ~4x")
-    return ok
+    results.append(("D=200/D=50 ratio", _check(
+        3.5 < ratio < 4.5,
+        f"D=200/D=50 ratio {ratio:.1f}x (~4x claimed)",
+    )))
+
+    paired = {}
+    for run in data:
+        if run["config"] in {RGSA_CONFIG, REFERENCE_CONFIG}:
+            paired.setdefault((run["instance"], run["seed"]), {})[run["config"]] = run
+    common_pairs = [pair for pair in paired.values() if RGSA_CONFIG in pair and REFERENCE_CONFIG in pair]
+    better = sum(pair[RGSA_CONFIG]["final_residual"] < pair[REFERENCE_CONFIG]["final_residual"] for pair in common_pairs)
+    results.append(("39/40 pairs", _check(
+        len(common_pairs) == 40 and better == 39,
+        f"{better}/{len(common_pairs)} pairs RGSA < Blind (39/40 claimed)",
+    )))
+
+    exact = sum(bool(run["feasible"]) for run in data)
+    results.append(("No feasibility", _check(
+        exact == 0 and len(data) == 160,
+        f"{exact}/{len(data)} exact feasibility",
+    )))
+
+    violations_ok = True
+    for D in (50, 200):
+        values = {}
+        for config in (REFERENCE_CONFIG, "lagrangian_blind_sa", RGSA_CONFIG):
+            values[config] = _mean(
+                data,
+                lambda r, D=D, config=config: r["m"] == 15 and r["D"] == D and r["config"] == config,
+                field="max_abs_violation",
+            )
+        violations_ok &= values[RGSA_CONFIG] <= values[REFERENCE_CONFIG]
+        violations_ok &= values[RGSA_CONFIG] <= values["lagrangian_blind_sa"]
+    results.append(("Violations RGSA smallest", _check(
+        violations_ok,
+        "RGSA has no larger mean V_max than standalone baselines on m=15",
+    )))
+
+    # Keep these calculations exercised so changes to the statistical API do not
+    # silently break publication checks.
+    improvement = compute_improvement_stats(data)
+    stats_ok = (
+        improvement["n_pairs"] == 40
+        and math.isfinite(float(improvement["median_improvement"]))
+        and all((15, D, RGSA_CONFIG) in class_statistics for D in (50, 200))
+    )
+    results.append(("Statistics API", _check(
+        stats_ok,
+        f"paired statistics and class groups available ({improvement['n_pairs']} pairs)",
+    )))
+    return results
 
 
-def ablation_39_check(data: list[dict]) -> bool:
-    pair_keys = set()
-    for r in data:
-        if r["_cfg"] in ("rgsa", "sa"):
-            pair_keys.add((r["_iid"], r["seed"]))
-    rgsa_better = 0
-    total = len(pair_keys)
-    for iid, seed in pair_keys:
-        rg = [r for r in data if r["_iid"] == iid and r["seed"] == seed and r["_cfg"] == "rgsa"]
-        bl = [r for r in data if r["_iid"] == iid and r["seed"] == seed and r["_cfg"] == "sa"]
-        if rg and bl and rg[0]["final_residual"] < bl[0]["final_residual"]:
-            rgsa_better += 1
-    ok = rgsa_better == 39
-    if ok:
-        print(f"  PASS: {rgsa_better}/{total} pairs RGSA < Blind (39 claimed)")
-    else:
-        print(f"  FAIL: {rgsa_better}/{total} pairs, expected 39")
-    return ok
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--json", type=Path, default=DEFAULT_RESULTS)
+    args = parser.parse_args(argv)
 
-
-def no_feasibility_check(data: list[dict]) -> bool:
-    exact = [r for r in data if r["final_residual"] < 1e-6]
-    ok = len(exact) == 0
-    if ok:
-        print(f"  PASS: 0/{len(data)} exact feasibility")
-    else:
-        print(f"  FAIL: {len(exact)}/{len(data)} exact feasibility")
-    return ok
-
-
-def violations_rgsa_smallest_on_m15(data: list[dict]) -> bool:
-    ok = True
-    for D in [50, 200]:
-        iid = f"ms_15_{D:03d}_000"
-        runs = [r for r in data if r["_iid"] == iid]
-        vmeans = {}
-        for cfg in ["sa", "lag", "rgsa", "full"]:
-            cfg_runs = [r for r in runs if r["_cfg"] == cfg]
-            if cfg_runs:
-                vmeans[cfg] = sum(r["max_abs_violation"] for r in cfg_runs) / len(cfg_runs)
-        if not vmeans:
-            continue
-        rg_v = vmeans.get("rgsa", float("inf"))
-        sa_v = vmeans.get("sa", float("inf"))
-        lag_v = vmeans.get("lag", float("inf"))
-        if rg_v > sa_v or rg_v > lag_v:
-            print(f"  FAIL: m=15 D={D} RGSA V_max {rg_v:.1f} > SA {sa_v:.1f} or Lag {lag_v:.1f}")
-            ok = False
-    if ok:
-        print("  PASS: RGSA smallest V_max among standalone configs on m=15")
-    return ok
-
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--json", default="results/paper_benchmarks/paper_benchmark_results.json")
-    args = parser.parse_args()
-
+    summary = validate_results(args.json)
     data = load_results(args.json)
-    print(f"Loaded {len(data)} runs\n")
-
-    results = []
-    results.append(("Flagship residuals", flagship_check(data)))
-    results.append(("Scaling D=50", scaling_d50_check(data)))
-    results.append(("D=200/D=50 ratio", ratio_d200_check(data)))
-    results.append(("39/40 pairs", ablation_39_check(data)))
-    results.append(("No feasibility", no_feasibility_check(data)))
-    results.append(("Violations RGSA smallest", violations_rgsa_smallest_on_m15(data)))
-
+    print(f"Loaded {summary['runs']} validated runs\n")
+    results = run_checks(data)
     print()
-    passed = sum(1 for _, v in results if v)
-    total = len(results)
-    if passed == total:
-        print(f"ALL {total} CHECKS PASSED")
-    else:
-        print(f"{passed}/{total} checks passed, {total - passed} FAILED")
-        sys.exit(1)
+    passed = sum(value for _, value in results)
+    if passed != len(results):
+        print(f"{passed}/{len(results)} checks passed, {len(results) - passed} FAILED")
+        return 1
+    print(f"ALL {len(results)} CHECKS PASSED")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

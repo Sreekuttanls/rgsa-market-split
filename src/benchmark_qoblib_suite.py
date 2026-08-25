@@ -35,8 +35,8 @@ def benchmark_suite():
         fpath = os.path.join(data_dir, fname)
         if not os.path.exists(fpath):
             continue
-        A, b, known_sol = parse_instance(fpath)
-        cardinality = int(np.sum(known_sol)) if known_sol is not None else A.shape[1] // 2
+        A, b, _known_sol = parse_instance(fpath)
+        cardinality = A.shape[1] // 2
         solver = RGSASolver(A, b, cardinality=cardinality, seed=42)
         res = solver.solve()
         print(f"{fname:<20} {desc:<30} {res['residual']:<12.4f} {res['relative_error_pct']:.2f}%       {res['total_time_sec']:.2f}s")

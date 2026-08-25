@@ -213,9 +213,7 @@ def write_outputs(
     payload = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "pipeline_tasks": [1, 2],
-        "instance_directory": str(
-            (PACKAGE_ROOT / "data" / "01-marketsplit" / "instances").resolve()
-        ),
+        "instance_directory": "data/01-marketsplit/instances",
         "instance_filter": instance_filter,
         "instances": [path.name for path in instance_paths],
         "seeds": [int(seed) for seed in seeds],

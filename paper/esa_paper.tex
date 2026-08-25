@@ -26,17 +26,19 @@
 
 \title{Residual-Guided Simulated Annealing for\\
 Multi-Dimensional Subset Sum}
-\author{Anonymous Authors}
+\author{Sreekuttan L. S.\\
+Bloq Quantum, India\\
+\texttt{sreekuttan@bloq.in}}
 \date{}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-The multi-dimensional subset sum problem, also known as Market Split, asks for a vector $x\in\{0,1\}^n$ satisfying $Ax=b$ simultaneously across $m$ integer constraints. It is a compact but severe feasibility benchmark: dense, nearly symmetric instances possess an uninformative continuous relaxation, while exact lattice enumeration and Schroeppel--Shamir methods incur rapidly increasing search or storage costs. Current exact computations solve the Quantum Optimization Benchmarking Library (QOBLIB) classes through $m=14$, but fail on the $m=15$, $N=140$ frontier within practical limits. We introduce \emph{Residual-Guided Simulated Annealing (RGSA)}, a cardinality-preserving annealing method whose central proposal replaces a selected item by the available vector nearest to the ideal compensator $w^*=w_i-\res$, where $\res=Ax-b$ is the current residual. This geometric rule turns residual information into a discrete swap without sacrificing the exploratory moves required by simulated annealing. Lagrangian projection and deterministic two-item exchange are evaluated as optional supporting components; their combination is called the Full RGSA pipeline. RGSA stores only the instance, residual, and partition, using $O(Nm)$ memory. On the flagship $(m{=}15, N{=}140, D{=}200)$ QOBLIB instance, RGSA achieves a mean residual of $104.06$ ($0.389\%$ relative error) in approximately $21$ seconds, while the Full RGSA pipeline reaches $100.37$ in approximately $22$ seconds. Across a scaling study covering $m=9$--$15$ with $D=50$, RGSA residuals grow from approximately $11.2$ to $24.2$ while mean runtimes remain under $33$ seconds. A controlled 5-seed ablation attributes a median paired residual reduction of $7.7$ units (approximately $29\%$) to RGSA relative to blind simulated annealing, with a paired 95\% bootstrap confidence interval of $[7.6,\,15.2]$ residual units across 40 instance-seed pairs; RGSA achieves strictly lower residual than blind SA in 39 of 40 pairs. We report, to our knowledge, the first published systematic heuristic results for QOBLIB Market Split at $m=12$--$15$.
+The multi-dimensional subset sum problem, also known as Market Split, asks for a binary vector satisfying several integer subset-sum constraints simultaneously. We introduce Residual-Guided Simulated Annealing (RGSA), a cardinality-preserving method whose central proposal replaces a selected item by the available vector nearest to the ideal compensator $w_i-\res$, where $\res=Ax-b$ is the current residual. Random swaps and Metropolis acceptance retain exploration. Lagrangian initialization and deterministic exchange polishing are evaluated as optional supporting components. On eight QOBLIB Market Split instances, four configurations, and five common seeds (160 runs in total), RGSA reduces residuals relative to blind simulated annealing while returning approximate solutions. On the $(m{=}15,N{=}140,D{=}200)$ flagship instance, RGSA obtains mean residual $104.06$ and the Full RGSA pipeline obtains $100.37$; neither produces an exact-feasibility certificate. Across 40 matched instance-seed pairs, RGSA has a median residual improvement of $7.68$ units over blind simulated annealing, with a paired 95\% bootstrap interval of $[7.60,15.22]$, and is strictly better in 39 pairs. For $D=50$, mean RGSA residual increases from $11.17$ at $m=9$ to $24.16$ at $m=15$, while the recorded mean runtime remains below 33 seconds. These results establish a reproducible approximate classical baseline, not a proof of infeasibility or a replacement for exact methods.
 \end{abstract}
 
-\noindent\textbf{Keywords:} multi-dimensional subset sum; Market Split; simulated annealing; Lagrangian relaxation; local search; QOBLIB; combinatorial optimization
+\noindent\textbf{Keywords:} multi-dimensional subset sum; Market Split; simulated annealing; local search; QOBLIB; heuristic optimization
 
 \section{Introduction}\label{sec:introduction}
 Market Split is the feasibility problem of selecting a subset whose aggregate attributes simultaneously attain prescribed targets. Cornu\'ejols and Dawande introduced deliberately small, hard $0$--$1$ systems to expose weaknesses in general-purpose integer programming \cite{cornuejols1998}. Subsequent work used basis reduction, lattice enumeration, branch-and-cut, and meet-in-the-middle techniques \cite{aardal1999,aardal2000,wassermann2002,wassermann2021,wassermann2026,kempkekoch2026}. The problem has renewed significance as one of the ten classes in the Quantum Optimization Benchmarking Library (QOBLIB), a common testbed intended to make comparisons between classical and quantum optimization methods reproducible \cite{koch2025}.
@@ -52,7 +54,7 @@ The gap is particularly visible at the exact frontier. Recent lattice enumeratio
 
 Our contributions are threefold.
 \begin{enumerate}
-  \item We provide, to our knowledge, the first systematic heuristic results on the published QOBLIB Market Split classes $m=12$--$15$, using 5 independent seeds on 8 flagship instances and explicitly defined residual, violation, feasibility, runtime, and memory metrics.
+  \item We provide a controlled multi-seed heuristic study of selected published QOBLIB Market Split classes $m=12$--$15$, using 5 common seeds on 8 instances and explicitly defined residual, violation, feasibility, runtime, and memory metrics.
   \item We formulate and evaluate \emph{Residual-Guided Simulated Annealing (RGSA)}, a geometric, direction-guided, cardinality-preserving swap neighborhood. Given a removed vector $w_i$ and residual $\res$, RGSA searches for the available item nearest to $w_i-\res$ and mixes this proposal with random swaps inside a Metropolis annealing schedule.
   \item We evaluate Lagrangian warm-starting and deterministic two-item polishing as supporting components. Their combination with RGSA is reported as the Full RGSA pipeline, while the ablation identifies residual guidance as the dominant empirical contributor.
 \end{enumerate}
@@ -225,7 +227,7 @@ $O\bigl(\binom{q}{2}\binom{N-q}{2}m\bigr)=O(N^4m)$ time. Pair-sum batching reduc
 
 \section{Experimental Setup}\label{sec:setup}
 \subsection{Instances and protocol}
-We evaluate flagship instances at each scale: one instance per $(m,D)$ class for $m\in\{9,10,11,12,13,14,15\}$ with $D=50$, plus the $(15,140,200)$ flagship---giving 8 instances total. Each stochastic configuration is run with 5 independent seeds (42--46). Parameters are fixed: $L=3000$ Lagrangian iterations, $K=150{,}000$ SA steps, $p_g=0.65$, $T_0=600$, $T_f=10^{-3}$, and one exhaustive two-item pass. Cardinality is set to $\lfloor N/2 \rfloor$ without consulting reference solutions.
+We evaluate one selected instance per $(m,D)$ class for $m\in\{9,10,11,12,13,14,15\}$ with $D=50$, plus the $(m{=}15,D{=}200)$ flagship, giving 8 instances in total. Each of the four stochastic configurations is run with 5 common seeds (42--46), for $8\times4\times5=160$ primary runs. Parameters are fixed: $L=3000$ Lagrangian iterations, $K=150{,}000$ SA steps, $p_g=0.65$, $T_0=600$, $T_f=10^{-3}$, and one exhaustive two-item pass for the Full RGSA pipeline. Cardinality is set to $q=\lfloor N/2\rfloor$ from the instance dimensions alone; the embedded QOBLIB reference solution is not consulted when configuring the primary runs. The separate cardinality sweep is exploratory and is not included in the 160-run primary comparison.
 
 \subsection{Metrics}
 For each run we report:
@@ -235,7 +237,7 @@ For each run we report:
  V_{\max}(x)&=\|Ax-b\|_\infty &&\text{(maximum row violation)},\nonumber\\
  F(x)&=\mathbf{1}[Ax=b] &&\text{(exact feasibility)},\label{eq:metrics}
 \end{align}
-plus wall-clock time and peak resident memory. We aggregate medians and interquartile ranges over seeds and report exact-feasibility rates with binomial confidence intervals. Pairwise comparisons use common seeds and instances; the primary ablation statistic is the percentage change in median residual.
+plus wall-clock time and peak resident memory. The main tables report means and sample standard deviations over the 5 common seeds; the best-residual table reports the minimum over those seeds. Pairwise comparisons use matched instance-seed pairs. The primary RGSA-versus-blind statistic is the paired residual difference, with bootstrap confidence intervals computed using a fixed seed. Exact-feasibility rates are reported as counts and, where stated, Wilson intervals.
 
 \subsection{Baselines and ablations}
 The Full RGSA pipeline is compared with four controlled configurations under the same annealing-step budget whenever applicable. Raw configuration identifiers are retained in the benchmark records; their paper-facing names are:
@@ -248,7 +250,7 @@ The Full RGSA pipeline is compared with four controlled configurations under the
 This design isolates the main effect of residual guidance by comparing Blind SA and RGSA, tests the warm start by comparing RGSA with the Full RGSA pipeline, and measures polishing by comparing the RGSA incumbent with the final pipeline result.
 
 \subsection{Hardware and reproducibility}
-Experiments were executed on an Apple Silicon (arm64) system running macOS, using Python~3.9.6 with NumPy~1.26.4 and a single solver thread per run. No GPU is used by RGSA. The array payload for the largest instance ($m{=}15$, $N{=}140$) is under $50$~KB (instance, residual, partition, and multiplier arrays); Python interpreter overhead is not included in this figure. The instance parser, solver, seed list, raw per-run records (JSON), and table-generation scripts accompany the paper at \url{https://anonymous.4open.science/r/rgsa-market-split-XXXX}.
+Experiments were executed on an Apple Silicon (arm64) system running macOS, using Python~3.9.6 with NumPy~1.26.4 and a single solver thread per run. No GPU is used by RGSA. The array payload for the largest instance ($m{=}15$, $N{=}140$) is under $50$~KB (instance, residual, partition, and multiplier arrays); Python interpreter resident memory is not represented by this payload estimate. The instance parser, solver, seed list, raw per-run records (JSON), pinned dependency declaration, and table-generation scripts accompany the paper at the review repository listed in the Data and Code Availability section. Timings are hardware-dependent and are reported for context rather than as universal speed claims.
 
 \section{Results}\label{sec:results}
 
@@ -260,11 +262,11 @@ Table~\ref{tab:comprehensive} presents the central experimental result: a head-t
 
 \textbf{Key observations:}
 \begin{itemize}
-\item RGSA and the Full RGSA pipeline consistently dominate the blind methods, with residual reductions of approximately 23--36\% across the tested scales.
-\item The Full RGSA pipeline is the best method on 5 of 8 instance classes by mean residual. RGSA, without Lagrangian warm-starting or polishing, is best on the remaining 3 classes; the differences between RGSA and the Full RGSA pipeline are small.
-\item Blind SA deteriorates rapidly with increasing $m$: its mean residual grows from 16.8 ($m=9$) to 142.3 ($m=15$, $D=200$). RGSA grows more moderately, from approximately 11.2 to 104.1 on the same classes, showing that the residual-guided neighborhood remains effective as dimensionality increases.
-\item The Lagrangian warm start and polishing provide only a modest incremental benefit when combined with RGSA: on the flagship instance, RGSA achieves 104.1 while the Full RGSA pipeline achieves 100.4. The paired comparison across the study is not statistically significant at the reported bootstrap interval.
-\item RGSA costs more per move than blind SA because of the $O(Nm)$ nearest-vector scan; RGSA and the Full RGSA pipeline require approximately 15--32~seconds, compared with 3--6~seconds for blind methods.
+\item RGSA and the Full RGSA pipeline consistently improve on the blind methods, with residual reductions of approximately 22--37\% across the tested scales.
+\item The Full RGSA pipeline is the best method on 4 of 8 instance classes by mean residual. RGSA, without Lagrangian warm-starting or polishing, is best on the remaining 4 classes; the differences between RGSA and the Full RGSA pipeline are small.
+\item Blind SA deteriorates rapidly across the reported classes: its mean residual grows from 16.8 at $(m,D)=(9,50)$ to 142.3 at $(m,D)=(15,200)$. RGSA grows more moderately, from 11.2 to 104.1 on the same classes, showing that the residual-guided neighborhood remains effective as dimensionality increases.
+\item On the flagship instance, the Full RGSA pipeline improves the mean residual by 3.69 units relative to RGSA. The paired 95\% bootstrap interval is $[-7.93,13.20]$, so the small increment is uncertain at this sample size.
+\item RGSA costs more per move than blind SA because of the $O(Nm)$ nearest-vector scan; the recorded RGSA and Full RGSA runs require approximately 14--32~seconds, compared with 3--6~seconds for blind methods on the documented machine.
 \end{itemize}
 
 \subsection{Best achieved residuals}
@@ -285,9 +287,8 @@ Table~\ref{tab:rgsa-scaling} isolates RGSA results to characterize the scaling o
 
 \input{tables/scaling_table.tex}
 
-\subsection{Supporting-component ablation}
-
-Table~\ref{tab:rgsa-ablation} reports the component ablation on \texttt{ms\_15\_200\_000} ($m=15$, $N=140$, $D=200$). The main comparison is RGSA versus Blind SA: the guided swap reduces the median residual by 29\%, with a paired 95\% bootstrap interval of $[7.6,\,15.2]$ residual units over the 40 instance-seed comparisons in the full study. The Lagrangian warm start and deterministic polishing are then evaluated as optional enhancements around RGSA.
+\subsection{Controlled configuration comparison}
+Table~\ref{tab:rgsa-ablation} reports the four configurations in the primary 160-run study on \texttt{ms\_15\_200\_000} ($m=15$, $N=140$, $D=200$). The main comparison is RGSA versus Blind SA: across all 40 matched instance-seed pairs in the full study, RGSA has a median residual reduction of 7.68 units (approximately 29\%), with a paired 95\% bootstrap interval of $[7.60,15.22]$. The Lagrangian warm start and deterministic polishing are evaluated as optional enhancements around RGSA. A legacy single-seed five-configuration diagnostic is retained only as exploratory audit material and is not used for the primary claims.
 
 \input{tables/ablation_table.tex}
 
@@ -299,7 +300,7 @@ The Full RGSA pipeline combines the Lagrangian warm start and deterministic poli
 
 \subsection{Comparison with published exact methods}
 
-Table~\ref{tab:rgsa-literature} contrasts RGSA runtimes with published exact-solver results. For $m\leq10$, Wassermann's lattice enumeration solves instances exactly in under 1~second---RGSA cannot compete on these solvable instances and is not intended to. At $m=12$--$14$, lattice enumeration requires 617 to 140,823~seconds (minutes to days) per instance; RGSA produces approximate solutions in approximately 17--27~seconds. At $m=15$, no exact method has reported any solution; RGSA produces residual approximately $24.2$ for $D=50$ and $104.1$ for $D=200$ in under $33$~seconds.
+Table~\ref{tab:rgsa-literature} contrasts RGSA runtimes with published exact-solver results for matching QOBLIB classes and coefficient ranges. For $D=50$, Wassermann reports 6.75~seconds at $m=10$, followed by 24, 617, 5,365, and 140,823~seconds at $m=11$--$14$; no $m=15$ solution is reported. RGSA produces approximate solutions in approximately 14--32~seconds on the documented Apple Silicon system. The Kempke--Koch values of 236.07~seconds for $(m,n,D)=(9,80,100)$ and 66,636.22~seconds for $(10,90,100)$ are for $D=100$ and are therefore not placed beside the primary $D=50$ rows. At $m=15$, no cited exact method has reported a solution for the relevant classes; RGSA produces mean residuals of approximately $24.2$ for $D=50$ and $104.1$ for $D=200$.
 
 \input{tables/literature_comparison.tex}
 
@@ -318,7 +319,7 @@ Blind exchange proposals ignore the sign and geometry of the current error. Equa
 Thus guidance is locally greedy conditional on $i$, while the Metropolis rule and random-proposal mixture permit uphill motion. The approach differs from sorting alone because it acts on a discrete local neighborhood and differs from steepest descent because temperature retains controlled nonmonotonicity.
 
 \subsection{Limitations}
-RGSA is approximate. A nonzero residual carries no lower bound on the best attainable residual, and failure to reach zero proves neither infeasibility nor hardness. Conversely, a zero residual is readily checkable and is an exact feasibility witness. Results depend on temperature, budget, cardinality, scaling across rows, and random seed. The guided scan also increases per-step work from $O(m)$ to $O(Nm)$ in the current implementation. Finally, claims of ``first'' results are scoped to the published QOBLIB Market Split heuristic literature found in our review; they do not exclude unpublished solver runs or studies under another problem name.
+RGSA is approximate. A nonzero residual carries no lower bound on the best attainable residual, and failure to reach zero proves neither infeasibility nor hardness. Conversely, a zero residual is readily checkable and is an exact feasibility witness. Results depend on temperature, budget, cardinality, scaling across rows, and random seed. The guided scan also increases per-step work from $O(m)$ to $O(Nm)$ in the current implementation. Finally, any priority claim is scoped to the published QOBLIB Market Split heuristic literature reviewed for this study; the paper does not claim that no unpublished runs or differently named studies exist.
 
 \paragraph{Cardinality restriction.}
 All reported experiments fix the cardinality to $q=\lfloor N/2\rfloor=70$ for $N=140$. This is an algorithmic restriction: the planted feasible solution of \texttt{ms\_15\_200\_000} has cardinality~$71$ \cite{koch2025}, so the searched slice $\mathcal{X}_{70}$ may not contain any exact feasible point. A small follow-up cardinality sweep on the flagship instance (3 seeds per configuration, full pipeline) found mean residuals of $108.4$ at $q{=}67$, $100.0$ at $q{=}71$, and $99.4$ at $q{=}72$, confirming that performance is flat within $q\in[67,72]$ and slightly better near the planted cardinality. We adopt $q{=}\lfloor N/2\rfloor$ as a transparent, instance-independent default; variable-cardinality moves are left to future work.
@@ -334,15 +335,17 @@ The most immediate extension is a hybrid lattice--RGSA solver that preserves exa
 \section{Conclusion}\label{sec:conclusion}
 We presented Residual-Guided Simulated Annealing (RGSA), a memory-light method for dense multi-dimensional subset sum. RGSA converts the exact residual equation into compensating swap proposals while preserving cardinality and retaining simulated annealing's nonmonotone exploration. Lagrangian projection and deterministic two-item exchange are optional supporting components; their combination is the Full RGSA pipeline. RGSA uses $O(Nm)$ instance storage and $O(KNm)$ worst-case annealing time, enabling short CPU runs at the $m=15$, $N=140$ QOBLIB frontier where exact methods are currently impractical.
 
-Across our scaling study ($m=9$--$15$, $D=50$; plus $m=15$, $D=200$), RGSA achieved mean residuals from approximately $11.2$ to $104.1$ in under $33$~seconds per instance, with the Full RGSA pipeline improving the flagship result to $100.4$. The array payload for all instances is under $50$~KB. On the flagship instance, no run achieved exact feasibility (0/160 across all configurations). The residual-guided swap contributes a median paired residual reduction of $7.7$ units (approximately $29\%$) over Blind SA (95\% CI: $[7.6,\,15.2]$), with RGSA achieving strictly lower residual in 39 of 40 instance-seed pairs. RGSA should be read as a reproducible approximate baseline and a candidate front end for exact search, not as a feasibility certificate.
+Across our scaling study ($m=9$--$15$, $D=50$; plus $m=15$, $D=200$), RGSA achieved mean residuals from approximately $11.2$ to $104.1$ in under $33$~seconds per instance, with the Full RGSA pipeline improving the flagship result to $100.4$. The array payload for the largest instance is under $50$~KB, excluding interpreter resident memory. On the flagship instance, none of its 20 primary runs achieved exact feasibility; across all four configurations and eight instances, the study recorded 0/160 exact-feasibility runs. The residual-guided swap contributes a median paired residual reduction of $7.68$ units (approximately $29\%$) over Blind SA (95\% CI: $[7.60,15.22]$), with RGSA achieving strictly lower residual in 39 of 40 instance-seed pairs. RGSA should be read as a reproducible approximate baseline and a candidate front end for exact search, not as a feasibility certificate.
 
 \section*{Data and Code Availability}
-Source code, QOBLIB instance identifiers, seed-level output records (JSON), environment manifests, and table-generation scripts are available at \url{https://anonymous.4open.science/r/rgsa-market-split-XXXX}. QOBLIB is available from \url{https://github.com/ZIB-AOPT/QOBLIB}.
+The data supporting the results are available in the committed artifact \texttt{results/paper\_benchmarks/paper\_benchmark\_results.json} in the review repository: \url{https://anonymous.4open.science/r/rgsa-market-split-1F7D/}. The artifact contains the 160 seed-level records used for the primary tables. The repository also contains the validator, claim checker, table-generation code, pinned dependency declaration, and the full benchmark runner. The lightweight validation commands do not rerun the benchmark. QOBLIB is available from \url{https://github.com/ZIB-AOPT/QOBLIB} and is reused under its upstream licenses; the QOBLIB publication is cited in the references. A camera-ready archival repository and persistent DOI will replace the review URL when available.
 
-\section*{Declarations}
-\textbf{Funding:} None.
-\quad
-\textbf{Competing interests:} The authors declare no competing interests.
+\section*{Statements and Declarations}
+\textbf{Author contributions:} Sreekuttan L. S. conceived the method, designed the experiments, implemented the software, performed the analysis, and wrote and approved the manuscript.
+
+\textbf{Funding:} No funding was received for conducting this study or preparing this manuscript.
+
+\textbf{Competing interests:} The author is Chief Executive Officer of Bloq Quantum, the author’s affiliation. No other financial or non-financial competing interests are declared.
 
 \begin{thebibliography}{99}
 
@@ -379,8 +382,8 @@ Springer. \url{https://doi.org/10.1007/978-3-030-79987-8_2}.
 \bibitem{wassermann2026}
 Wassermann, A. (2026).
 Solving the market split problem with lattice enumeration.
-\emph{arXiv preprint arXiv:2508.08702}, version 2.
-\url{https://arxiv.org/abs/2508.08702}.
+\emph{Mathematical Programming Computation}.
+\url{https://doi.org/10.1007/s12532-026-00328-z}.
 
 \bibitem{kempkekoch2026}
 Kempke, N.C., Koch, T. (2026).
@@ -389,10 +392,10 @@ A GPU accelerated variant of Schroeppel--Shamir's algorithm for solving the mark
 \url{https://arxiv.org/abs/2507.05045}.
 
 \bibitem{koch2025}
-Koch, T., Bernal Neira, D.E., Chen, Y., Cortiana, G., Egger, D.J., et al. (2025).
-Quantum Optimization Benchmarking Library: The Intractable Decathlon.
-\emph{arXiv preprint arXiv:2504.03832}.
-\url{https://arxiv.org/abs/2504.03832}.
+Koch, T., Bernal Neira, D.E., Chen, Y., Cortiana, G., Egger, D.J., et al. (2026).
+The Quantum Optimization Benchmarking Library.
+\emph{Nature Computational Science}, 6, 653--671.
+\url{https://doi.org/10.1038/s43588-026-00991-1}.
 
 \bibitem{vogel2012}
 Vogel, A. (2012).

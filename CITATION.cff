@@ -1,14 +1,15 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-# NOTE (review period): author identity is anonymized for double-anonymous
-# code sharing. Restore real author metadata, repository URLs, and the
-# Zenodo DOI at camera-ready per journal policy.
+message: "If you use this software or the associated benchmark analysis, please cite the manuscript and the archived release."
 authors:
-  - name: Anonymous
+  - family-names: "L. S."
+    given-names: "Sreekuttan"
+    affiliation: "Bloq Quantum, India"
+    email: "sreekuttan@bloq.in"
 title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / Market Split"
-version: 1.0.0
-date-released: 2026-08-23
+version: 1.1.0
+date-released: 2026-08-25
 license: MIT
+repository-code: "https://anonymous.4open.science/r/rgsa-market-split-1F7D/"
 keywords:
   - multi-dimensional subset sum
   - market split
@@ -20,7 +21,10 @@ keywords:
 preferred-citation:
   type: article
   authors:
-    - name: Anonymous
+    - family-names: "L. S."
+      given-names: "Sreekuttan"
+      affiliation: "Bloq Quantum, India"
+      email: "sreekuttan@bloq.in"
   title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum"
   journal: "Journal of Heuristics"
   year: 2026

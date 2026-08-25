@@ -1,0 +1,18 @@
+# Data license
+
+The bundled QOBLIB benchmark instances and associated raw benchmark data are
+third-party material from the Quantum Optimization Benchmarking Library.
+QOBLIB identifies its problem instances and raw data as licensed under the
+**Creative Commons Attribution 4.0 International License (CC BY 4.0)**:
+
+https://creativecommons.org/licenses/by/4.0/
+
+The QOBLIB source repository and complete attribution information are available
+at:
+
+https://github.com/ZIB-AOPT/QOBLIB
+
+This file does not relicense QOBLIB material. Users must preserve the original
+notices and provide attribution as required by CC BY 4.0. Original RGSA source
+code in this repository is licensed separately under the MIT License in
+`LICENSE`.

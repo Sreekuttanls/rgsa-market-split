@@ -1,108 +1,119 @@
-# Residual-Guided Simulated Annealing (RGSA) for Multi-Dimensional Subset Sum / Market Split
+# Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / Market Split
 
-This repository contains the implementation, benchmark data, and reproduction scripts for the paper:
+This repository contains the implementation, committed benchmark data, and
+reproduction checks for the manuscript **Residual-Guided Simulated Annealing
+for Multi-Dimensional Subset Sum**, prepared for the *Journal of Heuristics*.
 
-**Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum**  
-*Journal of Heuristics (under review)*
+The author is **Sreekuttan L. S.**, Bloq Quantum, India. Contact:
+`sreekuttan@bloq.in`.
 
-The method solves QOBLIB Market Split instances at the $m=15, N=140$ frontier using a cardinality-preserving simulated annealing approach whose central proposal replaces a selected item by the available vector nearest to the ideal compensator $w^* = w_i - \Delta$.
+RGSA solves fixed-cardinality QOBLIB Market Split instances with a
+residual-guided simulated-annealing neighborhood. For a selected item with
+attribute vector `w_i` and current residual `Delta = A x - b`, the guided swap
+searches for an available vector near `w_i - Delta`. The move preserves
+cardinality while using residual geometry to direct exploration.
 
----
+## Quickstart: validate the published results
 
-## Quickstart
+The committed benchmark result is already included. No benchmark rerun is
+needed to verify the paper tables and headline claims.
 
-### Requirements
-Python 3.8+ with NumPy. Install dependencies:
-```bash
-pip install -r requirements.txt
+Requires Python 3.9–3.12 and NumPy 1.26.4:
+
+```text
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python -m src.validate_publication
+python -m src.verify_claims
+python -m src.publication_smoke
 ```
 
-### Reproduce Paper Results
-```bash
-# Generate all 6 tables from the 160-run benchmark JSON
-python3 src/paper_statistics.py
+The checks validate 160 committed runs, recompute the manuscript-facing claims,
+and regenerate all six LaTeX tables in a temporary directory to detect stale
+artifacts. They do not run the expensive solver benchmark.
 
-# Verify all prose claims against raw data (must pass 6/6)
-python3 src/verify_claims.py
+Tables may be regenerated explicitly:
 
-# Re-run the full paper benchmarks (160 runs, ~30 min)
-./run_paper_experiments.sh
+```text
+python -m src.paper_statistics \
+  --input results/paper_benchmarks/paper_benchmark_results.json \
+  --output-dir paper/tables
 ```
 
-The benchmark uses QOBLIB instances (included under `data/01-marketsplit/instances/`). QOBLIB is also available from `https://github.com/ZIB-AOPT/QOBLIB`.
+The full benchmark runner is available for independent reproduction. It is
+expected to take approximately 30–40 minutes and is intentionally not run by
+CI:
 
----
-
-## Repository Structure
-
+```text
+python src/run_paper_benchmarks.py --help
 ```
+
+See [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for the historical protocol,
+artifact provenance, and the distinction between lightweight validation and a
+full benchmark rerun.
+
+## Main published experiment
+
+The primary result file is:
+
+`results/paper_benchmarks/paper_benchmark_results.json`
+
+It contains 160 runs:
+
+- 8 selected QOBLIB instances;
+- 4 configurations;
+- 5 common seeds (42–46);
+- 150,000 SA steps per run;
+- 3,000 Lagrangian iterations;
+- cardinality `A.shape[1] // 2`.
+
+The four raw configuration identifiers are retained for reproducibility:
+
+- `random_blind_sa` — Blind SA;
+- `lagrangian_blind_sa` — Lagrangian + Blind SA;
+- `random_guided_sa` — RGSA;
+- `full_esa` — Full RGSA pipeline.
+
+## Repository structure
+
+```text
 .
-├── README.md                          # This file
-├── requirements.txt                   # numpy
-├── run_paper_experiments.sh           # Full 160-run benchmark
-├── LICENSE                            # MIT
-├── CITATION.cff                       # Citation metadata
-│
-├── data/                              # QOBLIB Market Split instances
-│   └── 01-marketsplit/
-│       ├── instances/                 # ms_*.dat files (8 classes × 4 seeds)
-│       └── misc/                      # Generator (gen_marketshare.cpp)
-│
-├── src/                               # Source code
-│   ├── __init__.py
-│   ├── rgsa_solver.py                 # Core RGSA solver (3-stage pipeline)
-│   ├── paper_statistics.py            # Generates all 6 LaTeX tables from JSON
-│   ├── verify_claims.py               # Guards: all prose numbers match tables
-│   ├── run_paper_benchmarks.py        # Benchmark runner (160 runs)
-│   ├── run_ablation_study.py          # 5-seed ablation on flagship
-│   ├── run_cardinality_sweep.py       # q ∈ [67, 72] sweep
-│   ├── audit_n140.py                  # Numerical invariant audit
-│   └── benchmark_qoblib_suite.py      # Multi-scale suite runner
-│
-├── paper/                             # LaTeX paper + generated tables
-│   ├── esa_paper.tex                  # Main manuscript (anonymized for review)
-│   └── tables/                        # Auto-generated by paper_statistics.py
-│       ├── comprehensive_table.tex
-│       ├── scaling_table.tex
-│       ├── ablation_table.tex
-│       ├── literature_comparison.tex
-│       ├── best_residuals_table.tex
-│       └── violations_table.tex
-│
-└── results/                           # Pre-computed benchmark data
-    ├── paper_benchmarks/
-    │   └── paper_benchmark_results.json   # 160 runs (primary data source)
-    ├── paper_benchmarks_d50/
-    ├── paper_benchmarks_d200/
-    └── cardinality_sweep/
-        ├── full_runs.csv
-        └── full_summary.csv
+├── README.md
+├── REPRODUCIBILITY.md
+├── LICENSE                         # Original RGSA code: MIT
+├── LICENSE.data                    # Bundled QOBLIB data: CC BY 4.0
+├── THIRD_PARTY_NOTICES.md
+├── CITATION.cff
+├── pyproject.toml
+├── requirements.txt
+├── data/01-marketsplit/            # QOBLIB Market Split material
+├── src/
+│   ├── rgsa_solver.py              # Core three-stage solver
+│   ├── run_paper_benchmarks.py     # Full benchmark runner
+│   ├── paper_statistics.py         # LaTeX table generation
+│   ├── validate_publication.py     # Result schema and protocol checks
+│   ├── verify_claims.py            # Manuscript-facing claim checks
+│   └── publication_smoke.py        # Non-mutating release smoke checks
+├── tests/
+├── paper/esa_paper.tex
+├── paper/tables/                    # Generated publication tables
+└── results/paper_benchmarks/       # Canonical committed result artifact
 ```
 
----
+## Data and licensing
 
-## Key Results (from paper)
+The original RGSA source code is licensed under the MIT License. The bundled
+QOBLIB instances and related third-party files retain their upstream licensing
+and attribution requirements. QOBLIB identifies code as Apache-2.0 and instance
+/raw data as CC BY 4.0. See `LICENSE.data` and `THIRD_PARTY_NOTICES.md`.
 
-| Configuration | Flagship $m=15, D=200$ Mean Residual | Mean Time |
-|---------------|--------------------------------------|-----------|
-| Blind SA      | 142.3                                | 4 s       |
-| Lagrangian+Blind SA | 138.0                          | 4 s       |
-| **RGSA**      | **104.1**                            | **21 s**  |
-| Full RGSA     | **100.4**                            | **22 s**  |
+Please cite QOBLIB as:
 
-- RGSA beats Blind SA in **39 of 40** instance-seed pairs
-- Median paired residual reduction: **7.7 units (~29%)**
-- 95% bootstrap CI: **[7.6, 15.2]** residual units
-- No exact feasibility found in 160 runs (Wilson 95% CI: [0, 2.3%])
+> T. Koch et al., “The Quantum Optimization Benchmarking Library,” *Nature
+> Computational Science*, 6, 653–671 (2026),
+> https://doi.org/10.1038/s43588-026-00991-1.
 
----
+## Citation
 
-## Data Availability
-
-Raw per-run records (JSON), environment manifests, and table-generation scripts are available at the anonymous repository mirror (for review). QOBLIB instances: `https://github.com/ZIB-AOPT/QOBLIB`.
-
----
-
-## License
-
-MIT License — see `LICENSE`.
+See `CITATION.cff`. The final public release should replace the current
+anonymous review URL with the archival repository URL and DOI once minted.

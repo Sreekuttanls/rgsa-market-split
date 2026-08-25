@@ -23,8 +23,10 @@ def run_ablation():
     if not os.path.exists(inst_path):
         inst_path = "data/01-marketsplit/instances/ms_15_200_000.dat"
 
-    A, b, known_sol = parse_instance(inst_path)
-    cardinality = int(np.sum(known_sol)) if known_sol is not None else 71
+    A, b, _known_sol = parse_instance(inst_path)
+    # Keep exploratory ablations independent of the embedded reference solution.
+    # The primary benchmark protocol uses the instance-independent half split.
+    cardinality = A.shape[1] // 2
     target_norm = np.linalg.norm(b)
 
     print("=" * 95)

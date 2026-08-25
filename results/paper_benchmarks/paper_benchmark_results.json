@@ -1,4 +1,36 @@
 {
+  "artifact_version": "1.0",
+  "source_artifacts": [
+    "results/paper_benchmarks_d50/paper_benchmark_results.json",
+    "results/paper_benchmarks_d200/paper_benchmark_results.json"
+  ],
+  "instances": [
+    "ms_09_050_000.dat",
+    "ms_10_050_000.dat",
+    "ms_11_050_000.dat",
+    "ms_12_050_000.dat",
+    "ms_13_050_000.dat",
+    "ms_14_050_000.dat",
+    "ms_15_050_000.dat",
+    "ms_15_200_000.dat"
+  ],
+  "seeds": [42, 43, 44, 45, 46],
+  "configs": [
+    "random_blind_sa",
+    "random_guided_sa",
+    "lagrangian_blind_sa",
+    "full_esa"
+  ],
+  "parameters": {
+    "cardinality": "A.shape[1] // 2",
+    "n_steps": 150000,
+    "T_start": 600.0,
+    "T_end": 0.001,
+    "guided_p_guide": 0.65,
+    "blind_p_guide": 0.0,
+    "lagrangian_strategy": "prefix",
+    "sa_seed_offset": 10000
+  },
   "num_runs": 160,
   "runs": [
     {
