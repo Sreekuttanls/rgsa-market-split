@@ -9,7 +9,7 @@ title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / M
 version: 1.1.0
 date-released: 2026-08-25
 license: MIT
-repository-code: "https://anonymous.4open.science/r/rgsa-market-split-1F7D/"
+repository-code: "https://github.com/Sreekuttanls/rgsa-market-split"
 keywords:
   - multi-dimensional subset sum
   - market split
