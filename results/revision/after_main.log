@@ -1,0 +1,65 @@
+[2026-11-10 21:35:44] main finished:    32760 records
+[2026-11-10 21:35:44] neal retune on idle machine
+[2026-11-10 22:56:02] tuned_config: {"settings":{"rgsa":{"p_guide":0.7412308239916366,"T0":67.3276011539286,"Tf":0.6409258223311378},"blind_sa":{"T0":22.616790019826553,"Tf":0.5484645814694236},"ga":{"pop_size":77,"mutation_rate":0.5857655505624142},"neal":{"num_sweeps":3553,"penalty_scale":0.00908543241134876}},"sources":{"rgsa":{"best_value":2.2292241634459775,"default_value":2.348008552882585,"n_trials":60},"blind_sa":{"best_valu
+blind_sa   clock counted sleep            7
+blind_sa   shared machine with another job 960
+fj         answer found after deadline    10
+fj         clock counted sleep            22
+fj         shared machine with another job 954
+ga         answer found after deadline    127
+ga         shared machine with another job 859
+greedy     clock counted sleep            22
+greedy     shared machine with another job 960
+neal       answer found after deadline    59
+neal       method re-tuned                4621
+rgsa       clock counted sleep            10
+rgsa       shared machine with another job 960
+rgsa_full  clock counted sleep            10
+rgsa_full  overran budget (sleep)         1
+rgsa_full  shared machine with another job 960
+total invalid: 10542; kept: 22218
+backup: results/revision/main/runs.jsonl.before_purge_20261110_225606
+[2026-11-10 22:56:08] main pass 1
+rgsa       overran budget (sleep)         1
+total invalid: 1; kept: 32759
+backup: results/revision/main/runs.jsonl.before_purge_20261111_035715
+[2026-11-11 03:57:16] main pass 2
+total invalid: 0; kept: 32760
+[2026-11-11 03:57:26] ablation pass 1
+total invalid: 0; kept: 12480
+[2026-11-11 10:46:21] exact pass 1
+total invalid: 0; kept: 312
+[2026-11-11 16:14:43] long pass 1
+[2026-11-11 21:48:25] long resumed after pause (      52 records)
+[2026-11-11 21:48:25] long pass 1
+fj         clock counted sleep            13
+greedy     clock counted sleep            11
+rgsa       clock counted sleep            13
+rgsa_full  clock counted sleep            15
+total invalid: 52; kept: 428
+backup: results/revision/long/runs.jsonl.before_purge_20261112_112047
+[2026-11-12 11:20:47] long pass 2
+fj         clock counted sleep            10
+greedy     clock counted sleep            10
+rgsa       clock counted sleep            10
+rgsa_full  clock counted sleep            10
+total invalid: 40; kept: 440
+backup: results/revision/long/runs.jsonl.before_purge_20261112_160007
+[2026-11-12 16:00:07] long pass 3
+fj         clock counted sleep            8
+greedy     clock counted sleep            4
+rgsa       clock counted sleep            8
+rgsa_full  clock counted sleep            2
+total invalid: 22; kept: 458
+backup: results/revision/long/runs.jsonl.before_purge_20261112_182633
+[2026-11-12 18:26:33] LONG DONE
+[2026-11-13 12:14:52] long finish: waiting for AC power
+[2026-11-13 23:00:28] long finish pass 1
+fj         clock counted sleep            5
+greedy     clock counted sleep            4
+rgsa       clock counted sleep            3
+total invalid: 12; kept: 468
+backup: results/revision/long/runs.jsonl.before_purge_20261113_233655
+[2026-11-13 23:36:55] long finish pass 2
+total invalid: 0; kept: 480
+[2026-11-13 23:51:56] LONG FINISH DONE

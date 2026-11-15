@@ -1,0 +1,59 @@
+      100,
+      20000,
+      true
+    ],
+    "penalty_scale": [
+      "float",
+      0.001,
+      5.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 5350.143420934677
+}
+{
+  "settings": {
+    "rgsa": {
+      "p_guide": 0.7412308239916366,
+      "T0": 67.3276011539286,
+      "Tf": 0.6409258223311378
+    },
+    "blind_sa": {
+      "T0": 22.616790019826553,
+      "Tf": 0.5484645814694236
+    },
+    "ga": {
+      "pop_size": 77,
+      "mutation_rate": 0.5857655505624142
+    },
+    "neal": {
+      "num_sweeps": 3790,
+      "penalty_scale": 0.0021152240030125166
+    }
+  },
+  "sources": {
+    "rgsa": {
+      "best_value": 2.2292241634459775,
+      "default_value": 2.348008552882585,
+      "n_trials": 60
+    },
+    "blind_sa": {
+      "best_value": 2.4614446770469276,
+      "default_value": 2.63594948720582,
+      "n_trials": 60
+    },
+    "ga": {
+      "best_value": 3.3704257222095735,
+      "default_value": 3.869937364373919,
+      "n_trials": 60
+    },
+    "neal": {
+      "best_value": 3.4377319369078227,
+      "default_value": 4.264846929508913,
+      "n_trials": 60
+    }
+  },
+  "note": "Band fixed at +/-2 (QOBLIB generator documentation); not tuned."
+}

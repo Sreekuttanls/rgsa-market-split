@@ -1,1 +1,20 @@
 paper/esa_paper.pdf
+cpp/rgsa
+.venv/
+cpp/fj_driver
+paper/revision/*.aux
+paper/revision/*.log
+paper/revision/*.out
+paper/revision/*.fls
+paper/revision/*.fdb_latexmk
+paper/revision/*.synctex.gz
+paper/revision/latexdiff.err
+results/revision/*/runs.jsonl.before_*
+data/01-marketsplit/check/target/
+.DS_Store
+# private: reviewer comments are confidential, and the response letter quotes them
+Comment.docx
+rgsa_submission.pdf
+paper/revision/response_to_reviewers*
+paper/revision/submission/
+paper/revision/manuscript_changes.tex

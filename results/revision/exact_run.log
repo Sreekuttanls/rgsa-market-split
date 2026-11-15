@@ -1,0 +1,9 @@
+exact: 312 runs to do (0 already done), ~6.5 h with 4 workers
+[50/312] 12 min elapsed; last ms_05_050_001 scip s=1 -> time_limit R=1.4142135623730951
+exact: 255 runs to do (57 already done), ~5.3 h with 4 workers
+[50/255] 66 min elapsed; last ms_07_100_003 scip s=1 -> time_limit R=18.0
+[100/255] 127 min elapsed; last ms_09_100_002 cpsat s=1 -> time_limit R=13.784048752090222
+[150/255] 194 min elapsed; last ms_11_100_003 scip s=1 -> time_limit R=76.7333043730035
+[200/255] 259 min elapsed; last ms_13_200_000 cpsat s=1 -> time_limit R=67.94115100585212
+[250/255] 323 min elapsed; last ms_15_200_001 scip s=1 -> time_limit R=98.95453501482385
+exact: 8 runs to do (304 already done), ~0.2 h with 4 workers

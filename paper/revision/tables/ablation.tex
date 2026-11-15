@@ -1,0 +1,30 @@
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Ablation, 10 runs per instance. Variant = start (Rand: random, Lag: Lagrangian) / move (B: blind, G: guided) / polishing (P: to convergence, --: none). Rows as in Table~\ref{tab:main}, with comparisons against Lag/G/P (the full pipeline).}\label{tab:ablation}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+$m$ & Rand/B/-- & Rand/B/P & Rand/G/-- & Rand/G/P & Lag/B/-- & Lag/B/P & Lag/G/-- & Lag/G/P \\
+\midrule
+3 & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} \\
+4 & 1.7 & 1.8 & \textbf{0.8} & \textbf{0.8} & 1.7 & 1.6 & \textbf{0.8} & \textbf{0.8} \\
+5 & 4.5 & 4.5 & \textbf{2.9} & \textbf{2.9} & 4.4 & 4.3 & \textbf{2.9} & 3.1 \\
+6 & 7.8 & 7.7 & 5.5 & 5.6 & 7.8 & 8.0 & \textbf{5.4} & 5.9 \\
+7 & 11.5 & 11.9 & 8.7 & 9.1 & 11.8 & 12.2 & \textbf{8.6} & 8.9 \\
+8 & 15.4 & 15.9 & 12.1 & \textbf{11.5} & 15.7 & 15.2 & 12.0 & 12.2 \\
+9 & 21.0 & 20.5 & 16.7 & \textbf{16.6} & 21.3 & 21.1 & \textbf{16.6} & \textbf{16.6} \\
+10 & 25.6 & 26.1 & 21.9 & 21.5 & 26.3 & 26.2 & \textbf{20.8} & 21.2 \\
+11 & 31.1 & 30.4 & 26.0 & \textbf{25.7} & 31.0 & 30.7 & \textbf{25.7} & 26.6 \\
+12 & 37.7 & 37.3 & \textbf{30.7} & 31.9 & 37.6 & 36.5 & 31.8 & 31.0 \\
+13 & 43.3 & 42.9 & \textbf{37.3} & \textbf{37.3} & 43.4 & 43.5 & \textbf{37.3} & 37.7 \\
+14 & 47.4 & 47.0 & \textbf{40.4} & 41.9 & 46.9 & 46.2 & 41.6 & 40.8 \\
+15 & 52.4 & 52.8 & 48.0 & 47.8 & 53.4 & 53.7 & \textbf{47.2} & 48.7 \\
+\midrule
+Mean rank & 6.31 & 6.22 & 2.60 & 2.72 & 6.52 & 6.16 & 2.65 & 2.82 \\
+W/T/L & 1/15/140 & 0/15/141 & 69/25/62 & 69/27/60 & 0/14/142 & 0/18/138 & 75/26/55 & -- \\
+Holm $p$ & $<$0.001 & $<$0.001 & 1.000 & 1.000 & $<$0.001 & $<$0.001 & 0.465 & -- \\
+$r$ & +0.99 & +1.00 & -0.14 & -0.08 & +1.00 & +1.00 & -0.21 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,30 @@
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Heuristics under equal single-thread budgets ($N/10$\,s), all 156 instances, 30 runs each. Rows: mean over the instances with that $m$ of the per-instance median residual $R$ (lower is better; bold: best). Greedy: greedy exchange search with restarts; RGSA full: full RGSA pipeline; Blind SA: annealing without guidance; FJ: Feasibility Jump; QUBO SA: QUBO annealing; GA: genetic algorithm. Summary rows: Friedman mean rank (1 = best); W/T/L: instances on which the method is better/tied/worse than Greedy; Holm $p$: Holm-corrected Wilcoxon signed-rank $p$ against Greedy; $r$: rank-biserial effect size (negative: better than Greedy). Runs without a vector are ranked last.}\label{tab:main}
+\begin{tabular}{lrrrrrrr}
+\toprule
+$m$ & Greedy & RGSA & RGSA full & Blind SA & FJ & QUBO SA & GA \\
+\midrule
+3 & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & \textbf{0.0} & 3.1 & 6.2 & 9.8 \\
+4 & \textbf{0.6} & 0.8 & 0.9 & 1.7 & 6.9 & 11.5 & 18.0 \\
+5 & \textbf{2.4} & 2.7 & 2.8 & 4.0 & 10.8 & 17.7 & 21.7 \\
+6 & \textbf{4.5} & 5.2 & 5.2 & 6.9 & 16.2 & 24.8 & 30.6 \\
+7 & \textbf{7.1} & 7.9 & 8.0 & 10.5 & 22.3 & 33.6 & 33.2 \\
+8 & \textbf{10.3} & 11.1 & 11.0 & 14.2 & 27.8 & 41.7 & 39.9 \\
+9 & \textbf{14.8} & 15.3 & 15.3 & 18.9 & 36.0 & 50.3 & 46.7 \\
+10 & \textbf{18.9} & 19.8 & 19.9 & 23.8 & 42.1 & 62.7 & 50.7 \\
+11 & \textbf{23.0} & 23.9 & 24.1 & 28.9 & 48.8 & 71.9 & 56.5 \\
+12 & \textbf{28.1} & 29.0 & 28.9 & 34.0 & 53.9 & 75.8 & 61.7 \\
+13 & \textbf{33.5} & 34.2 & 34.2 & 40.0 & 61.3 & 83.3 & 67.8 \\
+14 & \textbf{38.2} & 39.7 & 39.5 & 44.7 & 70.6 & 92.2 & 77.1 \\
+15 & \textbf{44.0} & 45.3 & 45.9 & 51.0 & 78.5 & 102.1 & 86.7 \\
+\midrule
+Mean rank & 1.49 & 2.28 & 2.38 & 3.85 & 5.01 & 6.66 & 6.33 \\
+W/T/L & -- & 26/25/105 & 18/25/113 & 0/15/141 & 0/0/156 & 0/0/156 & 0/0/156 \\
+Holm $p$ & -- & $<$0.001 & $<$0.001 & $<$0.001 & $<$0.001 & $<$0.001 & $<$0.001 \\
+$r$ & -- & +0.76 & +0.81 & +1.00 & +1.00 & +1.00 & +1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,108 @@
+=== rgsa Mon Nov  9 14:32:20 IST 2026
+      1.0,
+      2000.0,
+      true
+    ],
+    "Tf": [
+      "float",
+      0.0001,
+      1.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 3479.522937774658
+}
+=== blind_sa Mon Nov  9 15:30:21 IST 2026
+      1.0,
+      2000.0,
+      true
+    ],
+    "Tf": [
+      "float",
+      0.0001,
+      1.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 6125.453547000885
+}
+=== ga Mon Nov  9 17:12:31 IST 2026
+      20,
+      400,
+      true
+    ],
+    "mutation_rate": [
+      "float",
+      0.2,
+      8.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 5253.699450969696
+}
+=== neal Mon Nov  9 18:40:09 IST 2026
+      100,
+      20000,
+      true
+    ],
+    "penalty_scale": [
+      "float",
+      0.05,
+      5.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 4535.18254160881
+}
+{
+  "settings": {
+    "rgsa": {
+      "p_guide": 0.7412308239916366,
+      "T0": 67.3276011539286,
+      "Tf": 0.6409258223311378
+    },
+    "blind_sa": {
+      "T0": 22.616790019826553,
+      "Tf": 0.5484645814694236
+    },
+    "ga": {
+      "pop_size": 77,
+      "mutation_rate": 0.5857655505624142
+    },
+    "neal": {
+      "num_sweeps": 7163,
+      "penalty_scale": 0.05048209962662904
+    }
+  },
+  "sources": {
+    "rgsa": {
+      "best_value": 2.2292241634459775,
+      "default_value": 2.348008552882585,
+      "n_trials": 60
+    },
+    "blind_sa": {
+      "best_value": 2.4614446770469276,
+      "default_value": 2.63594948720582,
+      "n_trials": 60
+    },
+    "ga": {
+      "best_value": 3.3704257222095735,
+      "default_value": 3.869937364373919,
+      "n_trials": 60
+    },
+    "neal": {
+      "best_value": 3.361616057278137,
+      "default_value": 4.1756058759813826,
+      "n_trials": 60
+    }
+  },
+  "note": "Band fixed at +/-2 (QOBLIB generator documentation); not tuned."
+}

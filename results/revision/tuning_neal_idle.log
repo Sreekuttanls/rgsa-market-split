@@ -1,0 +1,175 @@
+[I 2026-11-10 21:35:46,420] A new study created in RDB with name: neal_range2_idle
+[I 2026-11-10 21:42:14,169] Trial 1 finished with value: 4.139585199094487 and parameters: {'num_sweeps': 265, 'penalty_scale': 0.7796946401255924}. Best is trial 1 with value: 4.139585199094487.
+[I 2026-11-10 21:42:14,171] Trial 3 finished with value: 4.399296137239575 and parameters: {'num_sweeps': 6033, 'penalty_scale': 2.018175106959607}. Best is trial 1 with value: 4.139585199094487.
+[I 2026-11-10 21:42:14,173] Trial 0 finished with value: 4.147392267042691 and parameters: {'num_sweeps': 1000, 'penalty_scale': 1.0}. Best is trial 1 with value: 4.139585199094487.
+[I 2026-11-10 21:42:14,204] Trial 2 finished with value: 3.538087991697258 and parameters: {'num_sweeps': 101, 'penalty_scale': 0.0016735802977266778}. Best is trial 2 with value: 3.538087991697258.
+[I 2026-11-10 21:48:44,995] Trial 4 finished with value: 3.433054246174264 and parameters: {'num_sweeps': 19064, 'penalty_scale': 0.011778071226922012}. Best is trial 4 with value: 3.433054246174264.
+[I 2026-11-10 21:48:45,005] Trial 7 finished with value: 3.787428060124199 and parameters: {'num_sweeps': 705, 'penalty_scale': 0.252558487725596}. Best is trial 4 with value: 3.433054246174264.
+[I 2026-11-10 21:48:45,008] Trial 5 finished with value: 3.5402007986649866 and parameters: {'num_sweeps': 12118, 'penalty_scale': 0.072644995104536}. Best is trial 4 with value: 3.433054246174264.
+[I 2026-11-10 21:48:45,067] Trial 6 finished with value: 4.330806244288454 and parameters: {'num_sweeps': 17916, 'penalty_scale': 1.5429726996397897}. Best is trial 4 with value: 3.433054246174264.
+[I 2026-11-10 21:55:12,498] Trial 8 finished with value: 3.407688702160799 and parameters: {'num_sweeps': 548, 'penalty_scale': 0.006522168443755917}. Best is trial 8 with value: 3.407688702160799.
+[I 2026-11-10 21:55:12,511] Trial 9 finished with value: 3.5053341853741538 and parameters: {'num_sweeps': 3712, 'penalty_scale': 0.07094595616097979}. Best is trial 8 with value: 3.407688702160799.
+[I 2026-11-10 21:55:12,540] Trial 11 finished with value: 3.3985055225441543 and parameters: {'num_sweeps': 3553, 'penalty_scale': 0.00908543241134876}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 21:55:12,542] Trial 10 finished with value: 3.5030048121731303 and parameters: {'num_sweeps': 447, 'penalty_scale': 0.05279975364511495}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 21:59:00,590] Trial 13 pruned. 
+[I 2026-11-10 22:03:25,495] Trial 14 finished with value: 3.4983675533174576 and parameters: {'num_sweeps': 570, 'penalty_scale': 0.010387855949603286}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:03:25,497] Trial 12 finished with value: 3.5264595106634227 and parameters: {'num_sweeps': 1365, 'penalty_scale': 0.0016271702758553312}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:03:25,745] Trial 15 finished with value: 3.4921292340978565 and parameters: {'num_sweeps': 2715, 'penalty_scale': 0.002691869975147394}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:06:17,255] Trial 17 pruned. 
+[I 2026-11-10 22:06:29,741] Trial 19 pruned. 
+[I 2026-11-10 22:06:50,828] Trial 18 pruned. 
+[I 2026-11-10 22:08:26,239] Trial 20 pruned. 
+[I 2026-11-10 22:08:36,121] Trial 16 finished with value: 3.564214824073205 and parameters: {'num_sweeps': 10273, 'penalty_scale': 0.00261285103866321}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:08:41,910] Trial 21 pruned. 
+[I 2026-11-10 22:09:38,339] Trial 22 pruned. 
+[I 2026-11-10 22:14:07,069] Trial 24 pruned. 
+[I 2026-11-10 22:15:03,421] Trial 25 pruned. 
+[I 2026-11-10 22:17:16,654] Trial 26 pruned. 
+[I 2026-11-10 22:17:29,885] Trial 28 pruned. 
+[I 2026-11-10 22:19:34,039] Trial 23 finished with value: 3.8782323350363357 and parameters: {'num_sweeps': 9648, 'penalty_scale': 0.01975663029442946}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:19:41,363] Trial 29 pruned. 
+[I 2026-11-10 22:22:10,276] Trial 27 finished with value: 3.514318834027861 and parameters: {'num_sweeps': 4910, 'penalty_scale': 0.0015682324713388225}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:23:31,363] Trial 31 pruned. 
+[I 2026-11-10 22:23:33,179] Trial 32 pruned. 
+[I 2026-11-10 22:24:33,888] Trial 30 finished with value: 3.530676144476853 and parameters: {'num_sweeps': 5100, 'penalty_scale': 0.006048963111517896}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:26:45,536] Trial 36 pruned. 
+[I 2026-11-10 22:27:41,263] Trial 34 pruned. 
+[I 2026-11-10 22:29:03,195] Trial 33 finished with value: 3.858124313232826 and parameters: {'num_sweeps': 7727, 'penalty_scale': 0.2439589883244862}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:29:12,155] Trial 37 pruned. 
+[I 2026-11-10 22:30:22,242] Trial 35 finished with value: 3.613247466050441 and parameters: {'num_sweeps': 296, 'penalty_scale': 0.025559256244740418}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:31:27,345] Trial 40 pruned. 
+[I 2026-11-10 22:32:47,118] Trial 39 pruned. 
+[I 2026-11-10 22:33:23,979] Trial 42 pruned. 
+[I 2026-11-10 22:34:25,432] Trial 38 finished with value: 3.494435034442841 and parameters: {'num_sweeps': 8087, 'penalty_scale': 0.009880101898735148}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:36:41,956] Trial 45 pruned. 
+[I 2026-11-10 22:37:02,374] Trial 41 finished with value: 3.488153278158968 and parameters: {'num_sweeps': 1129, 'penalty_scale': 0.0027675780052117942}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:37:10,148] Trial 44 pruned. 
+[I 2026-11-10 22:39:22,978] Trial 43 finished with value: 3.5123383536689565 and parameters: {'num_sweeps': 434, 'penalty_scale': 0.005756681053683958}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:40:52,565] Trial 48 pruned. 
+[I 2026-11-10 22:43:02,861] Trial 49 pruned. 
+[I 2026-11-10 22:43:18,966] Trial 46 finished with value: 3.506340887741259 and parameters: {'num_sweeps': 5923, 'penalty_scale': 0.011444610925005896}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:43:37,718] Trial 47 finished with value: 3.5069231804701415 and parameters: {'num_sweeps': 2462, 'penalty_scale': 0.021819986672813294}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:45:33,789] Trial 52 pruned. 
+[I 2026-11-10 22:45:51,522] Trial 53 pruned. 
+[I 2026-11-10 22:47:05,150] Trial 51 pruned. 
+[I 2026-11-10 22:47:28,721] Trial 50 finished with value: 3.4938354072197373 and parameters: {'num_sweeps': 1349, 'penalty_scale': 0.002840401527735091}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:49:16,872] Trial 54 pruned. 
+[I 2026-11-10 22:49:45,604] Trial 55 pruned. 
+[I 2026-11-10 22:50:47,788] Trial 56 pruned. 
+[I 2026-11-10 22:51:11,025] Trial 57 pruned. 
+[I 2026-11-10 22:55:31,526] Trial 58 finished with value: 3.4827811691514685 and parameters: {'num_sweeps': 954, 'penalty_scale': 0.0031386681479670334}. Best is trial 11 with value: 3.3985055225441543.
+[I 2026-11-10 22:56:00,640] Trial 59 finished with value: 3.5050853666306048 and parameters: {'num_sweeps': 487, 'penalty_scale': 0.002780783053632701}. Best is trial 11 with value: 3.3985055225441543.
+{
+  "method": "neal",
+  "best_params": {
+    "num_sweeps": 3553,
+    "penalty_scale": 0.00908543241134876
+  },
+  "best_value": 3.3985055225441543,
+  "n_trials": 60,
+  "n_complete": 29,
+  "n_pruned": 31,
+  "default_value": 4.147392267042691,
+  "tuning_instances": [
+    "ms_08_100_000",
+    "ms_15_100_000",
+    "ms_10_050_000",
+    "ms_10_200_000",
+    "ms_14_200_000",
+    "ms_07_100_002",
+    "ms_12_100_000",
+    "ms_06_200_077",
+    "ms_03_100_001",
+    "ms_05_200_070",
+    "ms_12_200_000",
+    "ms_07_050_001",
+    "ms_04_200_030",
+    "ms_04_100_003",
+    "ms_08_200_000",
+    "ms_14_100_000",
+    "ms_06_100_002",
+    "ms_08_050_000",
+    "ms_11_100_000",
+    "ms_12_050_000",
+    "ms_10_100_000",
+    "ms_06_050_001",
+    "ms_04_050_001",
+    "ms_03_200_050",
+    "ms_09_100_000",
+    "ms_03_050_002",
+    "ms_15_200_000",
+    "ms_14_050_000",
+    "ms_09_050_000",
+    "ms_13_050_000",
+    "ms_11_050_000",
+    "ms_13_100_000",
+    "ms_11_200_000",
+    "ms_07_200_248",
+    "ms_05_050_001",
+    "ms_15_050_000",
+    "ms_13_200_000",
+    "ms_09_200_000",
+    "ms_05_100_003"
+  ],
+  "search_space": {
+    "num_sweeps": [
+      "int",
+      100,
+      20000,
+      true
+    ],
+    "penalty_scale": [
+      "float",
+      0.001,
+      5.0,
+      true
+    ]
+  },
+  "optuna_version": "5.0.0",
+  "sampler_seed": 2026,
+  "wall_seconds_this_session": 4814.2711861133575
+}
+{
+  "settings": {
+    "rgsa": {
+      "p_guide": 0.7412308239916366,
+      "T0": 67.3276011539286,
+      "Tf": 0.6409258223311378
+    },
+    "blind_sa": {
+      "T0": 22.616790019826553,
+      "Tf": 0.5484645814694236
+    },
+    "ga": {
+      "pop_size": 77,
+      "mutation_rate": 0.5857655505624142
+    },
+    "neal": {
+      "num_sweeps": 3553,
+      "penalty_scale": 0.00908543241134876
+    }
+  },
+  "sources": {
+    "rgsa": {
+      "best_value": 2.2292241634459775,
+      "default_value": 2.348008552882585,
+      "n_trials": 60
+    },
+    "blind_sa": {
+      "best_value": 2.4614446770469276,
+      "default_value": 2.63594948720582,
+      "n_trials": 60
+    },
+    "ga": {
+      "best_value": 3.3704257222095735,
+      "default_value": 3.869937364373919,
+      "n_trials": 60
+    },
+    "neal": {
+      "best_value": 3.3985055225441543,
+      "default_value": 4.147392267042691,
+      "n_trials": 60
+    }
+  },
+  "note": "Band fixed at +/-2 (QOBLIB generator documentation); not tuned."
+}

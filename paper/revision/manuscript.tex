@@ -1,0 +1,574 @@
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage[title]{appendix}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{manyfoot}
+\usepackage{booktabs}
+\usepackage{lineno}
+
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage[noend]{algpseudocode}
+\usepackage{listings}
+
+\theoremstyle{thmstyleone}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{thmstylethree}
+\newtheorem{remark}{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\B}{\{0,1\}}
+\newcommand{\res}{\boldsymbol{\Delta}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\raggedbottom
+
+\begin{document}
+
+\title[Residual-Guided Exchange Search for Market Split]{Residual-Guided Exchange Search for Multi-Dimensional Subset Sum: Greedy Restarts versus Simulated Annealing}
+
+\author*{\fnm{Sreekuttan} \sur{L. S.}}\email{sreekuttan@bloq.in}
+\affil*{\orgname{Bloq Quantum}, \country{India}}
+
+\abstract{The market split problem, also called multi-dimensional subset sum, asks whether items can be chosen so that several weighted totals all hit their targets exactly. Instances with a few constraints and dozens of items already defeat general-purpose integer programming solvers, and the problem is one of ten classes in the Quantum Optimization Benchmarking Library (QOBLIB). We study its near-feasibility version: when an exact solution is out of reach, find a selection whose totals come as close as possible to the targets. We study a residual-guided exchange, which swaps one selected item for the unselected item closest to the attribute vector that would cancel the current error. We embed this move in a greedy search with random restarts and in Residual-Guided Simulated Annealing (RGSA), which mixes guided and random exchanges under annealing. On all 156 QOBLIB instances, under equal single-thread budgets with 30 runs per instance and tuned parameters, both guided searches beat Feasibility Jump, a quadratic-binary annealing sampler and a genetic algorithm on every instance, and blind simulated annealing on at least 140 instances, never losing (Friedman and Holm-corrected Wilcoxon tests). The greedy search beats RGSA on 105 instances and loses on 26, by a small margin, so with one tuned schedule annealing adds no benefit. The exact solvers CP-SAT and SCIP, with 300 seconds per instance, solve no instance with more than five constraints and end farther from the targets than the greedy search on most instances. Neither search certifies infeasibility; both give fast, verifiable near-solutions.}
+
+\keywords{market split, multi-dimensional subset sum, simulated annealing, local search, heuristics, QOBLIB}
+
+\maketitle
+\linenumbers
+
+%% =====================================================================
+\section{Introduction}\label{sec:introduction}
+
+\linelabel{L:intro}The \emph{market split problem} takes its name from a market-sharing model described by Williams~\cite{williams1978} and popularised as a benchmark by Cornu\'ejols and Dawande~\cite{cornuejols1998}. A large company has two divisions and supplies a number of retailers with several products. Each retailer must be assigned to exactly one division so that the first division controls a prescribed share (for example, 40\%) of the company's market for \emph{every} product simultaneously, and the second division the remainder~\cite{cornuejols1998}. Writing the demand of retailer~$j$ for product~$i$ as an integer and the prescribed share as a target, the question becomes whether a set of retailers can be chosen whose total demands meet every product's target exactly. With a single product this is the classical subset-sum problem; with several products the same choice must satisfy several subset-sum equations at once, which is why the problem is also called \emph{multi-dimensional subset sum}.
+
+Although the formulation is tiny, Cornu\'ejols and Dawande showed that instances with only a few constraints and a few dozen binary variables are very hard for branch-and-bound solvers~\cite{cornuejols1998}, and the problem has since served as a stress test for integer programming. The strongest exact approaches reformulate it as a lattice problem: basis reduction followed by enumeration~\cite{aardal1999,aardal2000,wassermann2002,wassermann2021,wassermann2026}, together with branch-and-cut~\cite{vogel2012} and meet-in-the-middle search on graphics processors~\cite{kempkekoch2026}. The same subset-sum structure underlies knapsack-based public-key cryptosystems~\cite{merkle1978}, which lattice reduction was used to break~\cite{lagarias1985}, and a closely related optimisation problem, multidimensional two-way number partitioning, splits a set of vectors into two parts with sums as equal as possible in every coordinate~\cite{kojic2010,kratica2014,santucci2021}.
+
+The problem has gained renewed attention as one of ten problem classes in the Quantum Optimization Benchmarking Library (QOBLIB), a common test set intended to make comparisons between classical and quantum optimisation methods reproducible~\cite{koch2025}. QOBLIB provides 156 instances with between 3 and 15 constraints and between 20 and 140 binary variables. In the QOBLIB convention an instance counts as solved once a single binary vector satisfying all equations is found. Recent lattice enumeration solves the classes with up to 14 constraints on a standard computer, while the 15-constraint class remains unsolved under the reported limits~\cite{wassermann2026}.
+
+\linelabel{L:nearfeas}This paper addresses the complementary, \emph{near-feasibility} question: when an exact solution is out of reach within a short budget, how close to all targets can a lightweight heuristic get? A near-feasible selection is useful in its own right: its distance from the targets measures how well a method navigates the search space, it can serve as a starting point for exact or hybrid search, and it provides a transparent classical reference for approximate quantum methods evaluated on the same library. Classical partitioning heuristics and simulated annealing have a long history~\cite{kirkpatrick1983,johnson1991,mertens1999}, and evolutionary and local-search methods exist for multidimensional number partitioning~\cite{kratica2014,santucci2021}. Using constraint violations to steer local search is also established, for example in Guided Local Search~\cite{gls1999}, Shift-and-Propagate~\cite{berthold2015}, guided simulated annealing~\cite{chou2003} and Feasibility Jump~\cite{fj2023}. What has been missing is a systematic, statistically tested evaluation of such methods on the full QOBLIB set that also identifies which ingredients of a heuristic matter.
+
+\linelabel{L:contrib}We study the exchange move for market split from the point of view of the \emph{residual}, the difference between the current totals and the targets. An exchange keeps the number of selected items fixed and swaps one selected item for one unselected item. The residual determines exactly which attribute vector an inserted item would need in order to cancel the residual completely, so the best partner for a removed item is the available item closest to that ideal vector; we call this the \emph{residual-guided exchange}. Taking the best such exchange over all removed items is classical best-improvement exchange descent~\cite{johnson1991}; the residual view identifies the best partner of any single removed item as the item nearest to one vector, which annealing can compute for a randomly removed item in $O(Nm)$ operations per step, instead of $O(qNm)$ for a full best-improvement step. We study two searches built on it. The \emph{greedy exchange search} applies the best exchange until none improves the residual and then restarts from a random selection. \emph{Residual-Guided Simulated Annealing} (RGSA) mixes guided and random exchanges inside a simulated-annealing acceptance rule; two optional components, a Lagrangian warm start and an exchange-based polishing step, form the \emph{full RGSA pipeline}. The evaluation shows that the guided choice of partner is what makes annealing effective, and that, with a single annealing schedule tuned on QOBLIB, annealing adds nothing to the simpler greedy search with restarts, which performs best.
+
+The contributions are as follows.
+\begin{enumerate}
+  \item A residual formulation of the cardinality-preserving exchange for market split, and two searches built on it, a greedy search with random restarts and simulated annealing, with pseudocode for each search and component (Section~\ref{sec:method}).
+  \item An evaluation of both searches on all 156 QOBLIB market split instances against four heuristic competitors under equal single-thread time budgets, with parameters tuned on 39 training instances, a check on the other 117, and nonparametric statistical tests (Sections~\ref{sec:setup} and~\ref{sec:results}); time-limited exact solvers are reported separately.
+  \item An ablation that separates the effects of the warm start, the guided move and the polishing step, and a direct comparison showing what annealing adds, and does not add, on top of the guided move.
+\end{enumerate}
+
+Section~\ref{sec:problem} defines the problem and notation. Section~\ref{sec:method} describes the guided exchange and the two searches built on it, Section~\ref{sec:implementation} the implementation, Section~\ref{sec:setup} the experimental design and Section~\ref{sec:results} the results. Section~\ref{sec:discussion} discusses limitations, and Section~\ref{sec:conclusion} concludes.
+
+%% =====================================================================
+\section{Problem definition and notation}\label{sec:problem}
+
+\subsection{Market split}
+Table~\ref{tab:notation} lists the main symbols; symbols used only inside one algorithm are defined there. An instance consists of a nonnegative integer matrix $A\in\Z_{\ge0}^{m\times N}$ with $m$ rows (products, or constraints) and $N$ columns (items), and a target vector $b\in\Z_{\ge0}^{m}$. Column $j$ of $A$ is the \emph{attribute vector} $w_j\in\Z_{\ge0}^{m}$ of item~$j$. A candidate solution is a binary vector $x\in\B^N$, where $x_j=1$ means item~$j$ is selected; equivalently it is the set $S=\{j:x_j=1\}$ of selected items, whose complement $\bar S$ contains the unselected items. The feasibility problem is
+\begin{equation}
+  \text{find } x\in\B^N \text{ such that } Ax=b. \label{eq:msp}
+\end{equation}
+
+\begin{table}[t]
+\caption{Notation.}\label{tab:notation}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lp{0.66\textwidth}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$m$ & number of constraints (rows, products) \\
+$N$ & number of items (columns, binary variables); $N=10(m-1)$ in QOBLIB \\
+$D$ & coefficient range: entries of $A$ are integers in $[0,D)$ \\
+$A=[w_1,\dots,w_N]$ & constraint matrix; $w_j\in\Z_{\ge0}^m$ is the attribute vector of item $j$ \\
+$b$ & target vector (right-hand side) \\
+$x\in\B^N$, $S$, $\bar S$ & candidate solution; set of selected items; set of unselected items \\
+$\res(x)=Ax-b$ & residual vector (signed deviation from the targets) \\
+$R(x)=\|\res(x)\|_2$ & Euclidean residual; $R(x)=0$ if and only if $x$ is an exact solution \\
+$V_{\max}(x)=\|\res(x)\|_\infty$ & largest absolute deviation over the constraints \\
+$\tilde R$ & median of $R$ over the runs of a method on one instance \\
+$q$ & cardinality: number of selected items, $q=\mathbf 1^{\mathsf T}x$ \\
+$\mathbf 1_S$ & indicator vector of the set $S$ (the binary vector $x$ with $S=\{j:x_j=1\}$) \\
+$k$, $q_0$, $Q$ & half-width of the cardinality band; its centre $q_0=\lfloor N/2\rfloor$; the ordered list of its cardinalities \\
+$w^*$ & ideal compensating vector $w_i-\res$ (Eq.~\eqref{eq:ideal}) \\
+$\delta$ & change in $R$ caused by an exchange \\
+$p_g$ & probability of a guided (rather than random) exchange \\
+$T_0, T_f, T$, $\varepsilon_T$ & initial, final and current annealing temperature; temperature floor \\
+$\lambda$, $L$, $\alpha_0$, $\varepsilon_\lambda$ & Lagrangian multipliers, iterations, step size, multiplier floor \\
+$\tau$ & improvement tolerance of the polishing step \\
+$t_{\max}$ & wall-clock budget of a run \\
+$P$, $\rho$ & cardinality penalty of the QUBO model and its scale (Section~\ref{sec:competitors}) \\
+$s_i^+,s_i^-$ & slack variables of the exact-solver model (Section~\ref{sec:competitors}) \\
+\botrule
+\end{tabular*}
+\end{table}
+
+For a candidate that is not an exact solution we measure the deviation from the targets by
+\begin{equation}
+  \res(x)=Ax-b,\qquad R(x)=\|\res(x)\|_2,\qquad V_{\max}(x)=\|\res(x)\|_\infty. \label{eq:residual}
+\end{equation}
+\linelabel{L:approx}The \emph{near-feasibility} problem studied here is to find $x$ with $R(x)$ as small as possible; $R(x)=0$ certifies an exact solution of Eq.~\eqref{eq:msp}, while any positive value certifies nothing about whether an exact solution exists. Throughout, a vector with $R(x)>0$ is called an \emph{approximate solution} or \emph{incumbent}; the word \emph{feasible} is reserved for exact solutions.
+
+Deciding Eq.~\eqref{eq:msp} is NP-complete already for $m=1$ (subset sum)~\cite{cornuejols1998}; with several rows, one binary vector must satisfy several subset-sum equations at once.
+
+\subsection{Cardinality restriction}
+\linelabel{L:band}Both searches studied here consider only among vectors with a fixed number $q$ of selected items,
+\begin{equation}
+  \mathcal X_q=\{x\in\B^N:\mathbf 1^{\mathsf T}x=q\}, \label{eq:cardinality}
+\end{equation}
+at a time, because the exchange move preserves $q$. This is an algorithmic restriction, not part of Eq.~\eqref{eq:msp}: if every exact solution has a cardinality outside the searched values, the searches cannot find it. All reported residuals and exact-solution counts are computed against Eq.~\eqref{eq:msp} itself. The QOBLIB generator for $m\ge8$ plants a solution with approximately half of the items selected, \emph{``(\(\pm\)2)''} in the words of its documentation~\cite{koch2025}. In the published instances the planted solution indeed has $\lfloor N/2\rfloor\pm1$ or $\lfloor N/2\rfloor\pm2$ items, never exactly $\lfloor N/2\rfloor$; for $m\ge8$ the time spent at the centre cardinality therefore cannot reach a planted solution, although for $m\le7$ exact solutions of any cardinality may exist. We search the band $q\in[\lfloor N/2\rfloor-k,\lfloor N/2\rfloor+k]$ with $k=2$, the value given in the generator documentation; Section~\ref{sec:band} describes how the budget is divided over the band. To keep the comparison fair, every competitor is restricted to the same band (Section~\ref{sec:competitors}).
+
+\subsection{QOBLIB instances}\label{sec:instances}
+QOBLIB contains 156 market split instances in 39 classes, one class for each combination of $m\in\{3,\dots,15\}$ and $D\in\{50,100,200\}$, with four instances per class and $N=10(m-1)$~\cite{koch2025}. File names \texttt{ms\_mm\_DDD\_sss.dat} record $m$, $D$ and an instance identifier. The instances with $m\le7$ follow Cornu\'ejols and Dawande~\cite{cornuejols1998}: coefficients are drawn uniformly from $\{0,\dots,D-1\}$ and $b_i=\lfloor\tfrac12\sum_j a_{ij}\rfloor$, so an exact solution is not guaranteed to exist. The instances with $m\ge8$ are generated around a planted solution and are guaranteed to be feasible~\cite{koch2025}. In all 156 instances the targets are $b_i=\lfloor\tfrac12\sum_j a_{ij}\rfloor$, which we verified from the instance files.
+
+\subsection{Why the linear relaxation is uninformative}
+The following elementary observation explains why branch-and-bound solvers receive almost no guidance from the linear relaxation of these instances.
+\begin{lemma}[centre-point relaxation]\label{lem:collapse}
+Suppose $b=\tfrac12A\mathbf 1+\eta$ with $\|\eta\|_\infty\le\tfrac12$. Then $\bar x=\tfrac12\mathbf 1$ satisfies $0\le\bar x\le\mathbf 1$, $\mathbf 1^{\mathsf T}\bar x=N/2$ and $\|A\bar x-b\|_p=\|\eta\|_p$ for every $p$-norm.
+\end{lemma}
+\begin{proof}
+$A\bar x-b=\tfrac12A\mathbf 1-(\tfrac12A\mathbf 1+\eta)=-\eta$ and $\mathbf 1^{\mathsf T}\bar x=N/2$.
+\end{proof}
+Since $b_i=\lfloor\tfrac12\sum_j a_{ij}\rfloor$ for all QOBLIB instances, the relaxation attains a residual of at most $\tfrac12\sqrt m$ (about $1.9$ for $m=15$), far below the residuals of the best binary vectors found by any method in this study for $m\ge6$. The root bound therefore does not distinguish promising from unpromising binary assignments, and pruning occurs only after many variables are fixed; this is consistent with the behaviour reported for these instances~\cite{cornuejols1998,vogel2012,wassermann2026}. The lemma does not imply that every branch-and-cut implementation must explore the whole tree: presolve, cutting planes and primal heuristics can change performance materially.
+
+%% =====================================================================
+\section{The residual-guided exchange and two searches built on it}\label{sec:method}
+
+\subsection{Overview of the full pipeline}
+\linelabel{L:overview}Algorithm~\ref{alg:pipeline} shows how the components fit together. For each cardinality $q$ in the band, the pipeline (i) builds a starting selection with exactly $q$ items, either uniformly at random or with the Lagrangian projection of Algorithm~\ref{alg:lagrangian}; (ii) improves it with the residual-guided annealing of Algorithm~\ref{alg:rgsa}, which returns the best selection it visited; and (iii) optionally applies the exchange-based polishing of Algorithm~\ref{alg:polish}. The best selection over all cardinalities is returned. The method referred to simply as \emph{RGSA} in the experiments uses a random start and no polishing; the \emph{full RGSA pipeline} uses the Lagrangian start and polishing. Each run uses one random seed (line~1); repeated runs with different seeds are independent experiments, not part of the method.
+
+\begin{algorithm}[t]
+\caption{Full RGSA pipeline}\label{alg:pipeline}
+\begin{algorithmic}[1]
+\Require instance $(A,b)$; band half-width $k$; budget $t_{\max}$; start rule $\in\{\text{random},\text{Lagrangian}\}$; polishing on/off; seed $s$; parameters of Algorithms~\ref{alg:lagrangian}--\ref{alg:polish}
+\Ensure best selection $x^\star$ and its residual $R(x^\star)$
+\State initialise the random number generator with seed $s$
+\State $q_0\gets\lfloor N/2\rfloor$; $Q\gets(q_0,\,q_0-1,\,q_0+1,\,\dots,\,q_0-k,\,q_0+k)$ \Comment{centre first}
+\State $x^\star\gets$ none; $R^\star\gets+\infty$
+\For{$\ell\gets1$ \textbf{to} $|Q|$}
+  \State $q\gets Q_\ell$; $t_\ell\gets(t_{\max}-\text{elapsed time})/(|Q|-\ell+1)$ \Comment{equal share of what remains}
+  \If{start rule is Lagrangian} $x^{(0)}\gets\textsc{LagrangianStart}(A,b,q)$ \Comment{Algorithm~\ref{alg:lagrangian}}
+  \Else\ $x^{(0)}\gets$ $q$ items chosen uniformly at random
+  \EndIf
+  \State $x^{(1)}\gets\textsc{RGSA}(A,b,x^{(0)},t'_\ell)$ \Comment{Algorithm~\ref{alg:rgsa}}
+  \If{polishing is on} $x^{(2)}\gets\textsc{Polish}(A,b,x^{(1)})$ \Comment{Algorithm~\ref{alg:polish}}
+  \Else\ $x^{(2)}\gets x^{(1)}$
+  \EndIf
+  \If{$R(x^{(2)})<R^\star$} $x^\star\gets x^{(2)}$; $R^\star\gets R(x^{(2)})$ \EndIf
+  \If{$R^\star=0$ \textbf{or} the budget is exhausted} \textbf{break} \EndIf
+\EndFor
+\State \Return $x^\star$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Line-by-line description of Algorithm~\ref{alg:pipeline}.}
+Line~1 fixes the seed, which makes a run reproducible. Line~2 orders the cardinalities so that the centre value $\lfloor N/2\rfloor$ is tried first and the values $\pm1,\pm2$ alternately after it. Line~3 initialises the best selection. Lines~4--12 process one cardinality at a time. Line~5 gives cardinality $q$ an equal share of the remaining budget, so time left over by an early stop is passed on to the remaining cardinalities. Lines~6--7 build a starting selection of exactly $q$ items. Line~8 runs the residual-guided annealing, which returns the best selection visited at this cardinality, for $t'_\ell$ seconds: the share $t_\ell$ minus the time spent building the start and, when polishing is on, minus a further 10\% of $t_\ell$ that is reserved for polishing. Lines~9--10 optionally polish the selection; polishing stops early if the overall budget runs out. Line~11 updates the overall best. Line~12 stops as soon as an exact solution ($R=0$) is found or the budget is used up. Line~13 returns the best selection over all cardinalities. Every run additionally records the best residual seen so far at fixed checkpoints, which are used in Section~\ref{sec:results}.
+
+\subsection{The residual-guided exchange}\label{sec:guided}
+Let $S$ be the current selection and $\res=\sum_{j\in S}w_j-b$ its residual. Exchanging a selected item $i\in S$ for an unselected item $j\in\bar S$ keeps the cardinality and changes the residual to $\res-w_i+w_j$. The exchange cancels the residual completely if and only if
+\begin{equation}
+  \res-w_i+w_j=0\quad\Longleftrightarrow\quad w_j=w_i-\res=:w^*. \label{eq:ideal}
+\end{equation}
+The vector $w^*$ is the \emph{ideal compensator} for removing item~$i$. An item with exactly this attribute vector rarely exists, so RGSA inserts the available item closest to it,
+\begin{equation}
+  j^*(i)=\argmin_{j\in\bar S}\|w_j-w^*\|_2. \label{eq:nearest}
+\end{equation}
+Because $\|w_j-w^*\|_2=\|\res-w_i+w_j\|_2$, the item in Eq.~\eqref{eq:nearest} is exactly the partner that minimises the residual after removing~$i$. For a fixed removed item, the guided exchange is therefore the \emph{best possible} single exchange, that is, a greedy step.
+
+\linelabel{L:guided}Applying this step repeatedly, always choosing the best exchange over all~$i$, is best-improvement (steepest-descent) exchange search, a classical local search for partitioning problems~\cite{johnson1991}; it stops at the first selection from which no exchange reduces the residual. Section~\ref{sec:greedy} restarts it from random selections until the budget is used. RGSA builds on the same rule in three ways. First, the removed item~$i$ is chosen at random rather than optimally, which costs $O(Nm)$ instead of $O(qNm)$ per step and diversifies the moves. Second, with probability $1-p_g$ the inserted item is chosen uniformly at random instead of by Eq.~\eqref{eq:nearest}. Third, an exchange that \emph{increases} the residual is accepted with the Metropolis probability $\exp(-\delta/T)$, where $\delta$ is the increase and $T$ the current temperature~\cite{kirkpatrick1983}. Early in a run, when $T$ is large, the search can leave the basin of a local minimum; as $T$ decreases, RGSA behaves increasingly like the greedy rule. The intent is that guidance makes each step informative while annealing prevents premature convergence; Section~\ref{sec:results} tests whether annealing actually helps by comparing RGSA with the greedy search under the same budget.
+
+\subsection{Greedy exchange search with restarts}\label{sec:greedy}
+\linelabel{L:greedy}Algorithm~\ref{alg:greedy} restarts best-improvement exchange descent from random selections until the budget is used. Restarts cycle through the cardinalities of the band, so each cardinality receives about the same number of descents.
+
+\begin{algorithm}[t]
+\caption{Greedy exchange search with restarts}\label{alg:greedy}
+\begin{algorithmic}[1]
+\Require instance $(A,b)$; band half-width $k$; budget $t_{\max}$; seed $s$
+\Ensure best selection $x^\star$ and its residual $R(x^\star)$
+\State initialise the random number generator with seed $s$; $Q\gets(q_0,\,q_0-1,\,q_0+1,\,\dots,\,q_0-k,\,q_0+k)$
+\State $x^\star\gets$ none; $R^\star\gets+\infty$; $\ell\gets0$
+\While{elapsed time $<t_{\max}$ \textbf{and} $R^\star>0$}
+  \State $q\gets Q_{(\ell\bmod|Q|)+1}$; $\ell\gets\ell+1$ \Comment{round robin over the band}
+  \State $S\gets q$ items chosen uniformly at random; $\res\gets\sum_{j\in S}w_j-b$
+  \Repeat
+    \State $(i^*,j^*)\gets\argmin_{i\in S,\,j\in\bar S}\|\res-w_i+w_j\|_2$ \Comment{for each $i$, $j=j^*(i)$ of Eq.~\eqref{eq:nearest}}
+    \State $\mathit{imp}\gets\big(\|\res-w_{i^*}+w_{j^*}\|_2<\|\res\|_2\big)$
+    \If{$\mathit{imp}$} exchange $i^*$ and $j^*$; update $\res$ \EndIf
+  \Until{\textbf{not} $\mathit{imp}$ \textbf{or} the budget is exhausted}
+  \If{$\|\res\|_2<R^\star$} $x^\star\gets\mathbf 1_S$; $R^\star\gets\|\res\|_2$ \EndIf
+\EndWhile
+\State \Return $x^\star$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Line-by-line description of Algorithm~\ref{alg:greedy}.}
+Line~1 fixes the seed and orders the cardinalities of the band as in Algorithm~\ref{alg:pipeline}. Line~2 initialises the best selection and the restart counter. Lines~3--11 perform one descent per iteration until the budget is used or an exact solution is found. Line~4 picks the next cardinality in turn, and line~5 draws a random starting selection with that many items. Lines~6--10 are the descent: line~7 finds the best exchange by computing the guided partner of every selected item, at a cost of $O(qNm)$, and line~9 applies it if it strictly reduces the residual; when several exchanges are equally good, the first one found is taken. The descent stops at a selection that no single exchange improves (line~10). Line~11 keeps the best local minimum found, and line~12 returns it. The search has no tunable parameters other than the band.
+
+\subsection{Residual-guided simulated annealing}
+Algorithm~\ref{alg:rgsa} gives the annealing procedure.
+
+\begin{algorithm}[t]
+\caption{RGSA: residual-guided simulated annealing}\label{alg:rgsa}
+\begin{algorithmic}[1]
+\Require $A,b$; starting selection $x^{(0)}$ with $q$ items; time budget $t$; guide probability $p_g$; temperatures $T_0>T_f>0$; temperature floor $\varepsilon_T$
+\Ensure best selection visited, $x^{(1)}$
+\State $S\gets\{j:x^{(0)}_j=1\}$; $\bar S\gets\{1,\dots,N\}\setminus S$
+\State $\res\gets\sum_{j\in S}w_j-b$; $R\gets\|\res\|_2$
+\State $x^{(1)}\gets x^{(0)}$; $R_{\min}\gets R$; $T\gets T_0$
+\While{elapsed time $<t$ \textbf{and} $R_{\min}>0$}
+  \State choose $i$ uniformly at random from $S$
+  \State draw $u\sim\mathrm{Uniform}(0,1)$
+  \If{$u<p_g$} $j\gets\argmin_{h\in\bar S}\|\res-w_i+w_h\|_2$ \Comment{guided, Eq.~\eqref{eq:nearest}}
+  \Else\ choose $j$ uniformly at random from $\bar S$ \Comment{random}
+  \EndIf
+  \State $\res'\gets\res-w_i+w_j$; $R'\gets\|\res'\|_2$; $\delta\gets R'-R$
+  \If{$\delta<0$ \textbf{or} $\mathrm{Uniform}(0,1)<\exp(-\delta/\max\{T,\varepsilon_T\})$}
+    \State $S\gets(S\setminus\{i\})\cup\{j\}$; $\bar S\gets(\bar S\setminus\{j\})\cup\{i\}$; $\res\gets\res'$; $R\gets R'$
+    \If{$R<R_{\min}$} $R_{\min}\gets R$; $x^{(1)}\gets\mathbf 1_S$ \EndIf
+  \EndIf
+  \State $T\gets T_0\,(T_f/T_0)^{\text{elapsed time}/t}$ \Comment{geometric cooling in time}
+\EndWhile
+\State \Return $x^{(1)}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Line-by-line description of Algorithm~\ref{alg:rgsa}.}
+Line~1 stores the selection as two index sets; in the implementation both are arrays with position maps, so drawing a random element and exchanging two items take constant time. Line~2 computes the residual once; afterwards it is updated incrementally in $O(m)$ per exchange. Line~3 initialises the best selection and the temperature. Line~4 runs until the time budget is used or an exact solution is found. Line~5 chooses the item to remove. Lines~6--8 choose the item to insert: with probability $p_g$ the guided partner of Eq.~\eqref{eq:nearest}, which requires one pass over the $N-q$ unselected items ($O(Nm)$ operations), and otherwise a uniformly random partner ($O(m)$). Line~9 evaluates the exchange. Line~10 is the Metropolis rule; the energy is the residual norm $R$ rather than $R^2$, which keeps temperatures on the same scale as residuals, and $\varepsilon_T$ guards against division by zero for schedules that end near zero (with the tuned $T_f$ it is never reached). \linelabel{L:rgsalines}Line~11 applies an accepted exchange, and line~12 records a new best selection. Line~13 lowers the temperature geometrically from $T_0$ to $T_f$ as a function of the elapsed fraction of the budget, so a longer budget means slower cooling. The implementation reads the clock every 256 iterations. Line~14 returns the best selection visited, not the last one.
+
+\subsection{Supporting component: Lagrangian warm start}
+Algorithm~\ref{alg:lagrangian} constructs a starting selection with $q$ items. A nonnegative weight vector $\lambda$ on the constraints projects every item to the scalar score $z_j=\lambda^{\mathsf T}w_j$; the $q$ items with the smallest scores are selected. The residual of that selection then adjusts the weights, and the procedure keeps the best selection encountered.
+
+\begin{algorithm}[t]
+\caption{Lagrangian warm start (supporting component)}\label{alg:lagrangian}
+\begin{algorithmic}[1]
+\Require $A,b$; cardinality $q$; iterations $L$; step size $\alpha_0$; floor $\varepsilon_\lambda$
+\Ensure starting selection $x^{(0)}$ with $q$ items
+\State $\lambda\gets\mathbf 1/m$; $R_{\min}\gets+\infty$
+\For{$\kappa\gets0$ \textbf{to} $L-1$}
+  \State $z_j\gets\lambda^{\mathsf T}w_j$ for $j=1,\dots,N$
+  \State $S\gets$ indices of the $q$ smallest $z_j$ (ties broken by smaller index)
+  \State $x\gets\mathbf 1_S$; $\res\gets Ax-b$
+  \If{$\|\res\|_2<R_{\min}$} $R_{\min}\gets\|\res\|_2$; $x^{(0)}\gets x$ \EndIf
+  \State $\tilde\lambda\gets\max\{\lambda+(\alpha_0/\sqrt{\kappa+1})\,\res,\ \varepsilon_\lambda\mathbf 1\}$ (componentwise)
+  \State $\lambda\gets\tilde\lambda/(\mathbf 1^{\mathsf T}\tilde\lambda)$
+\EndFor
+\State \Return $x^{(0)}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Line-by-line description of Algorithm~\ref{alg:lagrangian}.}
+Line~1 starts from equal weights. Line~3 computes the score of every item. Line~4 selects the $q$ lowest-scoring items; the tie-breaking rule matters because with equal initial weights many items have identical scores. Line~5 computes the residual of the selection, and line~6 keeps the best selection so far, which is necessary because the map from weights to selections is piecewise constant and the residual does not decrease monotonically. Line~7 moves the weights in the direction of the residual with a diminishing step: if a constraint's total is too large, its weight grows, so items that contribute heavily to it score higher and are less likely to be selected. Values are clipped at $\varepsilon_\lambda$ to keep every constraint represented, and line~8 normalises the weights to sum to one. The procedure is a heuristic projection rather than an exact dual method; it supplies a structured starting point for Algorithm~\ref{alg:rgsa}.
+
+\subsection{Supporting component: exchange polishing}
+Algorithm~\ref{alg:polish} applies deterministic descent with two neighbourhoods: single exchanges (one selected item for one unselected item) and double exchanges (two for two). Both preserve the cardinality.
+
+\begin{algorithm}[t]
+\caption{Exchange polishing (supporting component)}\label{alg:polish}
+\begin{algorithmic}[1]
+\Require $A,b$; selection $x^{(1)}$; tolerance $\tau$
+\Ensure selection $x^{(2)}$ that no single or double exchange improves by more than $\tau$
+\State $S\gets\{j:x^{(1)}_j=1\}$; $\bar S\gets\{1,\dots,N\}\setminus S$; $\res\gets\sum_{j\in S}w_j-b$
+\Loop
+  \Repeat \Comment{best single exchange}
+    \State $(i^*,j^*)\gets\argmin_{i\in S,\,j\in\bar S}\|\res-w_i+w_j\|_2$
+    \State $\mathit{imp}\gets\big(\|\res-w_{i^*}+w_{j^*}\|_2<\|\res\|_2-\tau\big)$
+    \If{$\mathit{imp}$} exchange $i^*$ and $j^*$; update $\res$ \EndIf
+  \Until{\textbf{not} $\mathit{imp}$}
+  \State $(i_1^*,i_2^*,j_1^*,j_2^*)\gets\argmin\big\{\|\res-w_{i_1}-w_{i_2}+w_{j_1}+w_{j_2}\|_2:\{i_1,i_2\}\subseteq S,\ \{j_1,j_2\}\subseteq\bar S\big\}$
+  \If{this double exchange reduces $\|\res\|_2$ by more than $\tau$} apply it; update $\res$
+  \Else\ \textbf{break}
+  \EndIf
+\EndLoop
+\State \Return $x^{(2)}\gets\mathbf 1_S$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Line-by-line description of Algorithm~\ref{alg:polish}.}
+Line~1 sets up the index sets and residual. Lines~3--7 repeatedly apply the best improving single exchange; for each removed item the best partner is the guided partner of Eq.~\eqref{eq:nearest}, so one sweep costs $O(qNm)$. When no single exchange improves by more than $\tau$, line~8 searches all double exchanges; the implementation precomputes the pairwise sums of the unselected items once per sweep, so a sweep costs $O(q^2(N-q)^2m)=O(N^4m)$. Line~9 applies the best double exchange if it improves, after which single exchanges are tried again (line~2); otherwise line~10 stops. \linelabel{L:polishopt}On termination the selection is a local optimum with respect to both neighbourhoods (up to $\tau$). This is a local property only; it says nothing about global optimality or about the existence of an exact solution. The polishing step stops early if the overall budget is exhausted, in which case only local improvement is guaranteed; Section~\ref{sec:results} reports how often this occurred.
+
+\subsection{Cardinality band}\label{sec:band}
+Algorithm~\ref{alg:pipeline} visits the $2k+1$ cardinalities of the band in the order $q_0,q_0-1,q_0+1,\dots$ and gives each an equal share of the remaining budget. Splitting the budget, rather than letting moves change the cardinality, keeps Algorithms~\ref{alg:rgsa} and~\ref{alg:polish} unchanged and makes the cost of widening the band explicit: each cardinality receives a fraction $1/(2k+1)$ of the budget.
+
+\subsection{Parameters and complexity}
+Table~\ref{tab:params} lists every numerical setting. Storing $A$, the two index sets, the position maps, $\lambda$ and the residual requires $O(Nm)$ memory. A guided annealing step costs $O(Nm)$ and a random step $O(m)$, so the expected cost per step is $O(m(p_gN+1-p_g))$. A Lagrangian iteration costs $O(Nm+N\log N)$. A single-exchange sweep of the polishing step costs $O(qNm)$ and a double-exchange sweep $O(N^4m)$ time and $O(N^2m)$ memory.
+
+\begin{table}[t]
+\caption{Numerical settings of RGSA and the full pipeline. Tuned values were selected on the 39 tuning instances only (Section~\ref{sec:tuning}).}\label{tab:params}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}llll}
+\toprule
+Symbol & Meaning & Value & Source \\
+\midrule
+$p_g$ & guide probability & $0.74$ & tuned (range $[0.05,1]$) \\
+$T_0$ & initial temperature & $67.3$ & tuned (range $[1,2000]$, log scale) \\
+$T_f$ & final temperature & $0.641$ & tuned (range $[10^{-4},1]$, log scale) \\
+$\varepsilon_T$ & temperature floor & $10^{-4}$ & fixed \\
+$k$ & cardinality band half-width & $2$ & QOBLIB generator documentation \\
+$L$ & Lagrangian iterations & $3000$ & fixed \\
+$\alpha_0$ & Lagrangian step size & $10^{-3}$ & fixed \\
+$\varepsilon_\lambda$ & multiplier floor & $10^{-4}$ & fixed \\
+$\tau$ & polishing tolerance & $10^{-5}$ & fixed \\
+$t_{\max}$ & time budget & $N/10$ seconds & experimental design \\
+\botrule
+\end{tabular*}
+\end{table}
+
+%% =====================================================================
+\section{Implementation}\label{sec:implementation}
+
+\linelabel{L:impl}RGSA, the greedy exchange search and the blind annealing baseline are implemented in a single C++17 program compiled with Apple clang 16.0.0 (\texttt{-O3 -march=native -ffp-contract=off}). Residuals are held as 64-bit integers, so all residual updates are exact; floating-point arithmetic is used only for norms and the Metropolis test. The flag \texttt{-ffp-contract=off} prevents the compiler from fusing multiply--add operations in the Lagrangian scores, which would otherwise change rounding and, through ties, the selected items. Ties in the Lagrangian scores are broken by the smaller item index, as stated in Algorithm~\ref{alg:lagrangian}. The repository also contains a Python/NumPy implementation of the same components, which serves as a readable reference; automated tests check that its deterministic components (Algorithms~\ref{alg:lagrangian} and~\ref{alg:polish}) return the same selections as the C++ program.
+
+%% =====================================================================
+\section{Experimental design}\label{sec:setup}
+
+\subsection{Instances, budgets and runs}
+\linelabel{L:runs}All 156 QOBLIB market split instances are used (Section~\ref{sec:instances}). Every run of every heuristic is a single-threaded process with a wall-clock budget of $t_{\max}=N/10$ seconds, from 2 seconds for $N=20$ to 14 seconds for $N=140$, including instance reading and any warm start. Each heuristic is run 30 times on every instance with seeds $1,\dots,30$. \linelabel{L:seed}A run uses one seed; the 30 runs are independent repetitions used to estimate the distribution of the outcome. The same seeds are used for every method so that runs can be paired by instance and seed.
+
+Every run reports the best vector it found, its cardinality, its residual $R$, its maximum deviation $V_{\max}$, whether it is an exact solution ($R=0$), the time at which the best vector was found, and the best residual found by 10\%, 25\%, 50\% and 100\% of the budget. Every stored vector is re-verified against the instance, and every exact solution is additionally checked with the QOBLIB checker.
+
+\subsection{Methods compared}\label{sec:competitors}
+\linelabel{L:methods}Table~\ref{tab:methods} lists the methods, why each was chosen and its settings. All methods are restricted to the same cardinality band ($k=2$), receive the same budget, run single-threaded and report their best vector within the band, not only their final one.
+
+\begin{table*}[t]
+\caption{Methods compared. Tuned settings were chosen on the tuning instances (Section~\ref{sec:tuning}).}\label{tab:methods}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}p{0.17\textwidth}p{0.42\textwidth}p{0.33\textwidth}}
+\toprule
+Method & Why it is included & Settings \\
+\midrule
+RGSA & residual-guided annealing (Algorithm~\ref{alg:rgsa}, random start, no polishing) & tuned: Table~\ref{tab:params} \\
+Full RGSA pipeline & RGSA with Lagrangian start and polishing (Algorithm~\ref{alg:pipeline}) & RGSA's tuned values; Table~\ref{tab:params} \\
+Blind SA & RGSA with $p_g=0$: isolates the effect of guidance & tuned $T_0=22.6$, $T_f=0.548$ \\
+Greedy exchange & best-improvement exchange descent with random restarts (Algorithm~\ref{alg:greedy}); isolates the effect of annealing & no parameters \\
+Feasibility Jump~\cite{fj2023} & closest published method: violation-weighted local search for integer programs & authors' implementation and defaults (weight decay 1.0), not tuned \\
+QUBO annealing~\cite{lucas2014} & quadratic unconstrained binary optimisation (QUBO), the standard formulation for quantum and quantum-inspired solvers on QOBLIB & D-Wave \texttt{dwave-samplers} 1.6.0, default temperature schedule, one read per call; tuned: 3553 sweeps per read, $\rho=0.0091$ \\
+Genetic algorithm~\cite{blank2020} & generic population-based metaheuristic & \texttt{pymoo} 0.6.1.5; tuned population 77, 0.59 expected flipped bits per offspring \\
+\midrule
+CP-SAT~\cite{cpsat} & exact solver, run time-limited (separate table) & OR-Tools 9.14, defaults, 1 worker \\
+SCIP~\cite{scip} & exact solver, run time-limited (separate table) & SCIP 10.0 via PySCIPOpt 6.3.0, defaults, 1 thread \\
+\botrule
+\end{tabular*}
+\end{table*}
+
+\paragraph{Feasibility Jump.} We use the reference C++ implementation of Luteberget and Sartor~\cite{fj2023} (the header \texttt{feasibilityjump.hh}, a copy of which is included in our repository) on the model with binary variables, the $m$ equality constraints and the two cardinality-band inequalities, with a zero objective. The unmodified code reports only exact solutions; we added a read-only observer, called once per step, that records the incumbent with the smallest residual among those within the band. The patch does not change the search and is published with the code.
+
+\paragraph{QUBO annealing.} The instance is written as the unconstrained binary quadratic objective $\|Ax-b\|_2^2+P(\mathbf 1^{\mathsf T}x-q_0)^2$~\cite{lucas2014} with penalty $P=\rho\max_j\|w_j\|_2^2$, and sampled repeatedly, one read at a time, with the simulated-annealing sampler of \texttt{dwave-samplers} until the budget ends; $\rho$ and the number of sweeps are tuned. The penalty steers samples towards $q_0$ but does not enforce the band; samples outside the band are not counted.
+
+\paragraph{Genetic algorithm.} Binary strings, two-point crossover (applied to every pair of parents) and bit-flip mutation from \texttt{pymoo}~\cite{blank2020}, with duplicate elimination and a repair operator that moves the cardinality into the band by switching randomly chosen items on or off; the population size and the expected number of flipped bits per offspring are tuned.
+
+\paragraph{Exact solvers.} \linelabel{L:exactmodel}CP-SAT and SCIP solve the linear model $\min\sum_i(s_i^++s_i^-)$ subject to $A_ix-b_i=s_i^+-s_i^-$, the band constraints, $x\in\B^N$ and $s^\pm\ge0$ integer, whose optimum is zero exactly when an exact solution exists within the band. Each is run once per instance with a 300-second limit; every improving solution is captured through the solver's solution callback, and the solver status distinguishes a proven optimum, a time limit with or without a vector, and errors. Solver libraries are loaded before the clock starts. Because the exact solvers aim to prove optimality rather than to find good vectors quickly, and run with a different budget, they are reported in a separate table and are not ranked against the heuristics.
+
+\subsection{Parameter tuning}\label{sec:tuning}
+\linelabel{L:tuning}The first instance (lowest identifier) of each of the 39 $(m,D)$ classes forms the \emph{tuning set}; the other 117 instances form the \emph{test set} and are never used during tuning. For each tuned method we ran 60 trials of the Tree-structured Parzen Estimator sampler~\cite{bergstra2011} in Optuna~\cite{akiba2019}. A trial runs one configuration once on every tuning instance, using the main budget and seed $10{,}000$ plus the trial number, disjoint from the evaluation seeds $1,\dots,30$, and scores it by the mean over instances of $\log(1+R)$; differences in this score are average log-ratios of residuals, so instances with large coefficients do not dominate. The sampler starts with 10 random trials (sampler seed 2026). Trials are evaluated instance by instance, in a fixed random order, and stopped early when their running mean is worse than the median of earlier trials at the same point (Optuna's median pruner, active after 8 complete trials and 10 instances), a racing scheme in the spirit of irace~\cite{lopezibanez2016}. Each method's default configuration is always evaluated first. The search ranges are those of Table~\ref{tab:params} for RGSA, the same temperature ranges for blind annealing, $[20,400]$ for the population size and $[0.2,8]$ for the expected number of flipped bits of the genetic algorithm, and $[100,20000]$ sweeps and $\rho\in[0.001,5]$ for QUBO annealing, all on a logarithmic scale except $p_g$. Each tuned method received one study of 60 trials, except QUBO annealing: its first study used $\rho\in[0.05,5]$ and its best value lay on the lower bound, so the range was widened and the study repeated, and a repetition that shared the computer with another job was discarded and run again. QUBO annealing therefore received three studies; its setting is the best of the final one. Its main-experiment runs made with an earlier setting were replaced (Section~\ref{sec:results}). The main tables report all 156 instances; Section~\ref{sec:res-main} shows that restricting the analysis to the 117 test instances leaves every conclusion unchanged.
+
+\subsection{Statistical analysis}\label{sec:stats}
+\linelabel{L:stats}For each instance and method, the outcome is the median residual over the 30 runs. Methods are compared over instances with the Friedman test~\cite{friedman1937}, which ranks the methods on each instance; if it rejects equal performance, pairs of methods are compared with the Wilcoxon signed-rank test~\cite{wilcoxon1945} and the $p$-values are adjusted with Holm's procedure~\cite{holm1979}, following~\cite{demsar2006,derrac2011,benavoli2016}. A run that returns no vector within the budget receives the worst rank on its instance and is never dropped. Exact-solution counts are reported descriptively. \linelabel{L:boot}Each pairwise comparison also reports the number of instances on which each method is better (two methods are tied on an instance when their median residuals are equal), the matched-pairs rank-biserial correlation as an effect size, and the mean over instances of the difference in $\log(1+\tilde R)$, where $\tilde R$ is the per-instance median residual; its exponential is a geometric-mean ratio of $1+\tilde R$, and its 95\% confidence interval (CI) is obtained by a paired bootstrap that resamples \emph{instances} (10{,}000 resamples, fixed seed). The bootstrap unit is therefore the instance, not the run. All tests use a significance level of 0.05.
+
+\subsection{Computing environment}
+All runs were executed on an Apple M1 (four performance and four efficiency cores, 8~GB memory) under macOS, with at most four runs at a time so that every run could use a performance core. Python~3.9.6 and NumPy~1.26.4 were used for the reference implementation, the external solvers and the analysis.
+
+%% =====================================================================
+\section{Results}\label{sec:results}
+
+All tables in this section are generated from the run records in the repository (see Data availability). A run was discarded and repeated if it did not run under the stated conditions: in the main experiment, 5{,}653 runs on instances that had shared the computer with another job, 196 runs in which an external solver reported a vector found after the deadline, and 73 runs interrupted by the computer entering sleep mode; in addition, the 4{,}621 QUBO annealing runs made with a setting from an earlier tuning study were replaced (Section~\ref{sec:tuning}). In the 300-second experiment (Section~\ref{sec:res-long}), 126 runs interrupted by sleep mode were repeated.
+
+\subsection{Main comparison}\label{sec:res-main}
+\linelabel{L:resmain}Table~\ref{tab:main} compares the heuristics on all 156 instances. The Friedman test rejects equal performance ($\chi^2_6=869.1$, $p<10^{-180}$). The greedy search with restarts has the best mean rank (1.49), followed by RGSA (2.28) and the full RGSA pipeline (2.38); blind simulated annealing (3.85), Feasibility Jump (5.01), the genetic algorithm (6.33) and QUBO annealing (6.66) follow. The greedy search has the lowest mean residual for every value of $m$. All pairwise differences between the greedy search and the other methods are significant after Holm correction ($p<0.001$). Against RGSA, the greedy search is better on 105 instances, tied on 25 and worse on 26 (rank-biserial $r=0.76$). The difference is consistent but small in magnitude: the geometric-mean ratio of $1+\tilde R$ is 1.052 for RGSA relative to the greedy search (95\% CI 1.038--1.072), compared with 1.27 for blind annealing, 2.47 for Feasibility Jump, 3.56 for the genetic algorithm and 3.58 for QUBO annealing. RGSA and the full pipeline do not differ significantly (71 versus 62 instances, 23 ties; Holm $p=0.30$). Restricted to the 117 test instances, the ranking and the significance of every comparison with the greedy search are unchanged ($\chi^2_6=651.4$; mean ranks 1.49, 2.30, 2.35, 3.85, 5.01, 6.35, 6.64); against RGSA the greedy search is better on 80 test instances, tied on 19 and worse on 18 (Holm $p<0.001$).
+
+\input{tables/main_residual}
+
+The guided move is the decisive ingredient. RGSA differs from blind annealing only in the guided move ($p_g=0.74$ versus $p_g=0$, each with its own tuned temperatures), and it is better on 140 instances, tied on 16 (12 with $m=3$ and 4 with $m=4$) and never worse. Both guided searches are better than Feasibility Jump, QUBO annealing and the genetic algorithm on every instance. Every run of the guided searches and of QUBO annealing returned a vector; Feasibility Jump returned none in 2 of 4{,}680 runs and the genetic algorithm in 42, all ranked last as described in Section~\ref{sec:stats}.
+
+\subsection{Exact solutions}
+\linelabel{L:resexact}Table~\ref{tab:mainexact} counts runs that found an exact solution. Exact solutions were found only for $m\le5$: on all 12 instances with $m=3$ by every guided method in every run, on 12 instances with $m=4$ (greedy search 202 runs out of 360, RGSA 162, full pipeline 160, blind annealing 40), and with $m=5$ in 19, 8, 7 and 0 runs; each guided method solved 5 of the 12 instances with $m=5$, but not the same 5, so 8 different instances with $m=5$ were solved by at least one method. Feasibility Jump, QUBO annealing and the genetic algorithm found exact solutions only for $m=3$ (52, 9 and 2 runs). No method found an exact solution for any instance with $m\ge6$, although every instance with $m\ge8$ has a planted solution within the band. Within the budgets used here, the guided searches therefore find close vectors, not exact ones, on the larger instances; certificates require exact methods (Section~\ref{sec:res-exact}).
+
+\input{tables/main_exact}
+
+\subsection{Anytime behaviour}
+\linelabel{L:anytime}Table~\ref{tab:anytime} ranks the methods by their best residual at 10\%, 25\%, 50\% and 100\% of the budget. At 10\% of the budget the greedy search and RGSA are level (mean ranks 2.00 and 2.02); the greedy search moves ahead by 25\% of the budget and stays ahead. The full pipeline is ahead of RGSA at 25\% and 50\% of the budget and behind it at the end, and QUBO annealing is ahead of the genetic algorithm early in the run and behind it at the end; blind annealing and Feasibility Jump keep their positions throughout.
+
+\input{tables/main_anytime}
+
+\subsection{Ablation}
+\linelabel{L:ablation}Table~\ref{tab:ablation} compares all eight combinations of start (random or Lagrangian), move (blind or guided) and polishing (none or to convergence), with 10 runs per instance on all 156 instances. The Friedman test rejects equality ($\chi^2_7=756.0$, $p<10^{-150}$), but all of the difference comes from the move: every guided variant ranks between 2.60 and 2.82 and every blind variant between 6.16 and 6.52, and with a random start and no polishing the guided move is better on 142 instances, tied on 14 and never worse. Neither the Lagrangian start nor polishing has a significant effect, with or without guidance (all Holm $p\ge0.36$). Stage-wise residuals explain why. The Lagrangian projection selects the items with the smallest weighted scores, so its totals fall short of the targets: its median residual (about 680 for the guided variants) is larger than that of a random selection of the same size (390), but annealing removes this difference within the budget (median residual after annealing 16.4 with either start). Polishing rarely improves an annealed selection (median 16.37 before and after) and spends 0.12 to 0.14 seconds (median); in 10 to 13\% of runs it was stopped by the time limit before convergence (161 to 196 of 1{,}560 runs per variant), so the local-optimality guarantee of Section~\ref{sec:method} holds only for the runs in which polishing completed, which the run records identify.
+
+\input{tables/ablation}
+
+\subsection{Exact solvers}\label{sec:res-exact}
+\linelabel{L:solvers}Table~\ref{tab:exact} reports CP-SAT and SCIP with 300 seconds per instance. Both solve all 24 instances with $m\le4$ to residual zero (median time to the solution 6.2 seconds for CP-SAT and 9.4 seconds for SCIP), and CP-SAT also solves one instance with $m=5$. Neither proves, on any instance, that the band contains no exact solution, and neither finds an exact solution for $m\ge6$. Both return a vector on every instance. For $m=15$ the order of the two solvers is reversed: on the eight instances with $D\ge100$, the best residuals of CP-SAT (117 to 828) are well above those of SCIP (81 to 185). The two kinds of method had different budgets. Each heuristic run had $N/10$ seconds (2 to 14 seconds) and the greedy search was run 30 times per instance, so it used 60 to 420 seconds per instance in total, against one 300-second run of each solver. With these runs, the greedy search found an exact solution on five instances with $m=5$, against one for CP-SAT and none for SCIP. Its median residual over the 30 runs, that is, the result of a typical single run, is lower than the best residual of CP-SAT on 112 instances (equal on 22, higher on 22, all of the latter with $m\le10$) and lower than that of SCIP on 130 instances (equal on 18, higher on 8). For $m\ge12$ the greedy search is better than both solvers on every instance. Every exact solution found in any experiment of this paper (62 distinct vectors on 34 instances: all 24 with $m\le4$ and 10 with $m=5$, counting the ablation runs) was confirmed by the QOBLIB checker.
+
+\input{tables/exact}
+
+\subsection{Longer budgets}\label{sec:res-long}
+\linelabel{L:long}To test whether a longer budget favours annealing, we ran the greedy search, RGSA, the full pipeline and Feasibility Jump for 300 seconds on the 24 instances with $m\ge14$, about 22 times the main budget, with 5 runs per instance (Table~\ref{tab:long}). All methods improve: the median residual over these instances falls by 21 to 22\% for the guided searches (greedy search 35.5 to 28.0, RGSA 35.7 to 27.8). The greedy search remains first in mean rank (1.62, against 1.88 for RGSA, 2.50 for the full pipeline and 4.00 for Feasibility Jump; Friedman $p<10^{-9}$), but its record against RGSA on these instances narrows from 18 wins and 6 losses under the main budget to 13 wins and 11 losses, which is no longer significant (Holm $p=0.07$); the geometric-mean ratio of $1+\tilde R$ for RGSA relative to the greedy search is 1.026 (95\% CI 0.997--1.057), close to its value of 1.024 on the same instances under the main budget. RGSA leads at 10\% of the budget and the greedy search from 25\% onwards. The full pipeline is worse than RGSA (Holm $p=0.03$) and Feasibility Jump is last on every instance. Longer budgets therefore do not reverse the main result, although with five runs per instance they cannot rule out a small advantage either way.
+
+\input{tables/long}
+
+%% =====================================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{What guidance and annealing contribute}
+\linelabel{L:disc}The results separate two questions. The first is whether the residual-guided choice of partner helps; it does, decisively. Changing only the move turns blind annealing into RGSA, which is better on 140 of 156 instances and never worse, and the guided move is the only factor with a significant effect in the ablation. Both searches that use it are better than Feasibility Jump, QUBO annealing and the genetic algorithm on every instance. The second question is whether annealing adds anything on top of the guided move; with the single temperature schedule tuned here, it does not. Under the same budget the greedy search, which only ever accepts the best improving exchange and restarts from a random selection when none exists, is better than RGSA on 105 instances and worse on 26, although the difference is small (a geometric-mean ratio of 1.05 in $1+\tilde R$).
+
+A plausible explanation is the speed at which the greedy search reaches a local minimum. A steepest-descent run from a random selection needs only a few dozen exchanges, so within the budget the greedy search completes thousands of independent descents (median about 5{,}900 per run for $m=15$ and between 45{,}000 and 81{,}000 for $m=4$ to~7, as recorded in the run records) and keeps the best. Annealing spends the same time on one long trajectory whose early part, at high temperature, accepts many worsening moves. The anytime results agree with this explanation: the two searches are level after 10\% of the budget, while the temperature is still high, and the greedy search pulls ahead afterwards. Annealing might still pay off on instances with larger or more rugged landscapes, or with much longer budgets. A 300-second budget on the largest classes points in that direction without settling it: RGSA leads early in the run and the greedy search's advantage shrinks to a difference that is no longer significant (Section~\ref{sec:res-long}). A temperature schedule scaled to each instance, for example to its initial residual, might also change the comparison, since the residuals in QOBLIB range over two orders of magnitude while RGSA uses one schedule for all instances. We have not tried to recover an advantage for annealing by redesigning it after seeing these results, because any such variant would need to be tuned and evaluated on new instances to avoid overfitting the benchmark.
+
+\subsection{Relation to Feasibility Jump and other violation-guided methods}
+Feasibility Jump~\cite{fj2023} is the closest published method: it changes one variable at a time to the value that most reduces a weighted sum of constraint violations, and it increases the weights of constraints that stay violated. RGSA differs in that it keeps the cardinality fixed, moves by exchanging two items, and chooses the inserted item by a nearest-vector search derived from the residual equation (Eq.~\eqref{eq:ideal}) rather than by weighted violation scores. Guided Local Search~\cite{gls1999}, Shift-and-Propagate~\cite{berthold2015} and guided simulated annealing~\cite{chou2003} are further examples of violation- or order-parameter-guided search. The contribution of the guided exchange is therefore not guided search as such, nor best-improvement exchange descent, which is classical~\cite{johnson1991}, but the use of the best partner of a single, randomly removed item, given by the residual formulation, as the move of an annealing search.
+
+\subsection{Limitations}
+\linelabel{L:limits}Both searches are heuristics. A positive residual is not evidence that no exact solution exists, and neither search provides a lower bound on the smallest achievable residual. They search only the cardinality band; an exact solution with another cardinality cannot be found. RGSA's parameters were tuned on QOBLIB instances, with one temperature schedule for all instances, and results on instances from other generators, or with instance-scaled temperatures, may differ.
+
+The competitors were set up as follows, which affects how far the comparison generalises. Feasibility Jump was run with its authors' default settings rather than tuned. The genetic algorithm and QUBO annealing are driven from Python, so under equal wall-clock budgets part of their time is spent on interpreter overhead that the C++ heuristics do not pay. QUBO annealing reaches the band only through a penalty, and its samples outside the band are not counted. The exact solvers minimise the sum of absolute deviations, whereas all methods are scored by the Euclidean residual; since both are zero exactly at an exact solution, this matters only for the vectors they return at the time limit. CP-SAT was run with a single worker, which disables its portfolio of parallel strategies, so both solvers would likely do better with more threads or time. Run times depend on the computer, compiler and budget; the comparisons in this paper are made under equal single-thread budgets on one computer and are not universal speed rankings.
+
+\subsection{Complementarity with exact methods}
+When a certificate is required and the instance is within reach, lattice enumeration and other exact methods are preferable~\cite{wassermann2026,kempkekoch2026}. RGSA can complement them by supplying a starting vector, by suggesting which residual directions matter most, or by defining a small neighbourhood to be searched exactly; developing such a hybrid is left to future work.
+
+%% =====================================================================
+\section{Conclusion}\label{sec:conclusion}
+We studied the exchange move for the market split problem through its residual: the best partner for a removed item is the unselected item closest to the attribute vector that would cancel the current error. On all 156 QOBLIB instances, under equal single-thread budgets and with statistical testing over instances, two searches built on this move, best-improvement exchange descent with random restarts and residual-guided simulated annealing, beat Feasibility Jump, QUBO annealing and a genetic algorithm on every instance, and switching the guided partner on in annealing improves 140 instances and worsens none. With a single temperature schedule tuned on QOBLIB, annealing adds nothing on top of the guided move: the greedy search is better than RGSA on 105 instances and worse on 26, by a small margin, and a 300-second budget narrows but does not reverse this. With 2 to 14 seconds per run, a typical run of the greedy search also ends closer to the targets than CP-SAT and SCIP do in 300 seconds on most instances, and its 30 runs per instance found exact solutions on more instances with five constraints. No method, heuristic or exact, found an exact solution for six or more constraints, and the heuristics cannot show that none exists; certifying such instances remains a task for exact methods, which the guided searches might support by supplying starting vectors. Whether annealing with instance-scaled temperatures can improve on simple restarts is left open.
+
+%% =====================================================================
+\backmatter
+
+\bmhead{Acknowledgements}
+The author thanks Nikhil Londhe, researcher at Bloq Quantum, for valuable inputs and assistance in validating and checking the code and manuscript. The author used Gemini 3.7 Flash for brainstorming, outlining and drafting assistance during manuscript preparation. All AI-assisted material was critically reviewed, revised and verified by the author, who takes full responsibility for the study design, implementation, analysis, accuracy of citations and the final manuscript.
+
+\section*{Declarations}
+
+\bmhead{Ethical approval}
+\linelabel{L:decl}Not applicable. This study is computational and does not involve human participants, human data or animals.
+
+\bmhead{Consent to participate}
+Not applicable.
+
+\bmhead{Consent to publish}
+Not applicable.
+
+\bmhead{Funding}
+No funds, grants or other support were received for this study or for the preparation of this manuscript.
+
+\bmhead{Competing interests}
+The author is Chief Executive Officer of Bloq Quantum, the author's affiliation. The author declares no other financial or non-financial competing interests.
+
+\bmhead{Author contributions}
+Sreekuttan L.~S. conceived the method, designed the experiments, implemented the software, performed the analysis, and wrote and approved the manuscript.
+
+\bmhead{Data availability}
+\linelabel{L:data}All data generated and analysed in this study are available in the repository \url{https://github.com/Sreekuttanls/rgsa-market-split}: the result record of every run (instance, method, seed, residual, best vector, status, checkpoints and timing), the tuning records, and the configuration files. The QOBLIB instances are available from \url{https://github.com/ZIB-AOPT/QOBLIB} under the Creative Commons Attribution 4.0 licence~\cite{koch2025}.
+
+\bmhead{Code availability}
+The C++ and Python source code, the experiment runner, the tuning and analysis scripts, and the tests that check the C++ implementation against the Python reference are available in the same repository under the MIT licence.
+
+%% =====================================================================
+\begin{thebibliography}{99}
+
+\bibitem{williams1978}
+Williams HP (1978) Model Building in Mathematical Programming. Wiley, Chichester
+
+\bibitem{cornuejols1998}
+Cornu\'ejols G, Dawande M (1998) A class of hard small 0--1 programs. In: Bixby RE, Boyd EA, R\'ios-Mercado RZ (eds) Integer Programming and Combinatorial Optimization. Lecture Notes in Computer Science, vol 1412. Springer, Berlin, pp 284--293. \url{https://doi.org/10.1007/3-540-69346-7_22}
+
+\bibitem{aardal1999}
+Aardal K, Bixby RE, Hurkens CAJ, Lenstra AK, Smeltink JW (1999) Market split and basis reduction: towards a solution of the Cornu\'ejols--Dawande instances. In: Integer Programming and Combinatorial Optimization. Lecture Notes in Computer Science, vol 1610. Springer, Berlin, pp 1--16. \url{https://doi.org/10.1007/3-540-48777-8_1}
+
+\bibitem{aardal2000}
+Aardal K, Hurkens CAJ, Lenstra AK (2000) Solving a system of linear Diophantine equations with lower and upper bounds on the variables. Math Oper Res 25(3):427--442
+
+\bibitem{wassermann2002}
+Wassermann A (2002) Attacking the market split problem with lattice point enumeration. J Comb Optim 6:5--16. \url{https://doi.org/10.1023/A:1013355015853}
+
+\bibitem{wassermann2021}
+Wassermann A (2021) Search for combinatorial objects using lattice algorithms---revisited. In: Flocchini P, Moura L (eds) Combinatorial Algorithms. Springer, Cham, pp 20--33. \url{https://doi.org/10.1007/978-3-030-79987-8_2}
+
+\bibitem{wassermann2026}
+Wassermann A (2026) Solving the market split problem with lattice enumeration. Math Program Comput. \url{https://doi.org/10.1007/s12532-026-00328-z}
+
+\bibitem{vogel2012}
+Vogel A (2012) Solving the market split problem via branch-and-cut. Technical report, Zuse Institute Berlin
+
+\bibitem{kempkekoch2026}
+Kempke NC, Koch T (2026) A GPU accelerated variant of Schroeppel--Shamir's algorithm for solving the market split problem. arXiv:2507.05045. \url{https://arxiv.org/abs/2507.05045}
+
+\bibitem{merkle1978}
+Merkle R, Hellman M (1978) Hiding information and signatures in trapdoor knapsacks. IEEE Trans Inf Theory 24(5):525--530. \url{https://doi.org/10.1109/TIT.1978.1055927}
+
+\bibitem{lagarias1985}
+Lagarias JC, Odlyzko AM (1985) Solving low-density subset sum problems. J ACM 32(1):229--246. \url{https://doi.org/10.1145/2455.2461}
+
+\bibitem{kojic2010}\label{B:kojic2010}
+Koji\'c J (2010) Integer linear programming model for multidimensional two-way number partitioning problem. Comput Math Appl 60(8):2302--2308. \url{https://doi.org/10.1016/j.camwa.2010.08.024}
+
+\bibitem{kratica2014}
+Kratica J, Koji\'c J, Savi\'c A (2014) Two metaheuristic approaches for solving multidimensional two-way number partitioning problem. Comput Oper Res 46:59--68. \url{https://doi.org/10.1016/j.cor.2014.01.003}
+
+\bibitem{santucci2021}\label{B:santucci2021}
+Santucci V, Baioletti M, Di Bari G (2021) An improved memetic algebraic differential evolution for solving the multidimensional two-way number partitioning problem. Expert Syst Appl 178:114938. \url{https://doi.org/10.1016/j.eswa.2021.114938}
+
+\bibitem{koch2025}
+Koch T, Bernal Neira DE, Chen Y, Cortiana G, Egger DJ, et al (2026) The Quantum Optimization Benchmarking Library. Nat Comput Sci 6:653--671. \url{https://doi.org/10.1038/s43588-026-00991-1}
+
+\bibitem{kirkpatrick1983}
+Kirkpatrick S, Gelatt CD, Vecchi MP (1983) Optimization by simulated annealing. Science 220(4598):671--680. \url{https://doi.org/10.1126/science.220.4598.671}
+
+\bibitem{johnson1991}
+Johnson DS, Aragon CR, McGeoch LA, Schevon C (1991) Optimization by simulated annealing: an experimental evaluation; part II, graph coloring and number partitioning. Oper Res 39(3):378--406. \url{https://doi.org/10.1287/opre.39.3.378}
+
+\bibitem{mertens1999}
+Mertens S (1999) A complete anytime algorithm for balanced number partitioning. Technical report, Otto-von-Guericke University Magdeburg
+
+\bibitem{gls1999}
+Voudouris C, Tsang EPK (1999) Guided local search and its application to the traveling salesman problem. Eur J Oper Res 113(2):469--499
+
+\bibitem{berthold2015}
+Berthold T, Hendel G (2015) Shift-and-propagate. J Heuristics 21(1):73--106
+
+\bibitem{chou2003}\label{B:chou2003}
+Chou CI, Han RS, Li SP, Lee TK (2003) Guided simulated annealing method for optimization problems. Phys Rev E 67:066704. \url{https://doi.org/10.1103/PhysRevE.67.066704}
+
+\bibitem{fj2023}
+Luteberget B, Sartor G (2023) Feasibility Jump: an LP-free Lagrangian MIP heuristic. Math Program Comput 15:365--388. \url{https://doi.org/10.1007/s12532-023-00234-8}
+
+\bibitem{lucas2014}
+Lucas A (2014) Ising formulations of many NP problems. Front Phys 2:5. \url{https://doi.org/10.3389/fphy.2014.00005}
+
+\bibitem{blank2020}
+Blank J, Deb K (2020) pymoo: multi-objective optimization in Python. IEEE Access 8:89497--89509. \url{https://doi.org/10.1109/ACCESS.2020.2990567}
+
+\bibitem{cpsat}
+Perron L, Didier F (2024) CP-SAT. Google OR-Tools. \url{https://developers.google.com/optimization/cp/}
+
+\bibitem{scip}
+Bolusani S, et al (2024) The SCIP Optimization Suite 9.0. arXiv:2402.17702. \url{https://arxiv.org/abs/2402.17702}
+
+\bibitem{bergstra2011}
+Bergstra J, Bardenet R, Bengio Y, K\'egl B (2011) Algorithms for hyper-parameter optimization. In: Advances in Neural Information Processing Systems 24, pp 2546--2554
+
+\bibitem{akiba2019}
+Akiba T, Sano S, Yanase T, Ohta T, Koyama M (2019) Optuna: a next-generation hyperparameter optimization framework. In: Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, pp 2623--2631
+
+\bibitem{lopezibanez2016}
+L\'opez-Ib\'a\~nez M, Dubois-Lacoste J, P\'erez C\'aceres L, Birattari M, St\"utzle T (2016) The irace package: iterated racing for automatic algorithm configuration. Oper Res Perspect 3:43--58. \url{https://doi.org/10.1016/j.orp.2016.09.002}
+
+\bibitem{friedman1937}
+Friedman M (1937) The use of ranks to avoid the assumption of normality implicit in the analysis of variance. J Am Stat Assoc 32(200):675--701
+
+\bibitem{wilcoxon1945}
+Wilcoxon F (1945) Individual comparisons by ranking methods. Biom Bull 1(6):80--83
+
+\bibitem{holm1979}
+Holm S (1979) A simple sequentially rejective multiple test procedure. Scand J Stat 6(2):65--70
+
+\bibitem{demsar2006}
+Dem\v{s}ar J (2006) Statistical comparisons of classifiers over multiple data sets. J Mach Learn Res 7:1--30
+
+\bibitem{derrac2011}
+Derrac J, Garc\'ia S, Molina D, Herrera F (2011) A practical tutorial on the use of nonparametric statistical tests as a methodology for comparing evolutionary and swarm intelligence algorithms. Swarm Evol Comput 1(1):3--18. \url{https://doi.org/10.1016/j.swevo.2011.02.002}
+
+\bibitem{benavoli2016}
+Benavoli A, Corani G, Mangili F (2016) Should we really use post-hoc tests based on mean-ranks? J Mach Learn Res 17(5):1--10
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,36 @@
+ms_09_050_000 rgsa seed=42: python 102.89s (R=11.22) c++ 0.077s (R=11.36) speed-up 1330x
+ms_09_050_000 rgsa seed=43: python 36.40s (R=12.21) c++ 0.226s (R=11.40) speed-up 161x
+ms_09_050_000 rgsa seed=44: python 28.09s (R=11.36) c++ 0.044s (R=11.22) speed-up 638x
+ms_09_050_000 full_pipeline seed=42: python 37.03s (R=9.22) c++ 0.259s (R=11.09) speed-up 143x
+ms_09_050_000 full_pipeline seed=43: python 29.40s (R=11.31) c++ 0.060s (R=10.34) speed-up 490x
+ms_09_050_000 full_pipeline seed=44: python 18.77s (R=9.80) c++ 0.088s (R=12.88) speed-up 214x
+ms_12_050_000 rgsa seed=42: python 20.37s (R=20.12) c++ 0.076s (R=19.82) speed-up 269x
+ms_12_050_000 rgsa seed=43: python 18.94s (R=18.22) c++ 0.066s (R=19.05) speed-up 288x
+ms_12_050_000 rgsa seed=44: python 18.65s (R=18.11) c++ 0.065s (R=18.03) speed-up 285x
+ms_12_050_000 full_pipeline seed=42: python 24.46s (R=19.26) c++ 0.091s (R=17.41) speed-up 269x
+ms_12_050_000 full_pipeline seed=43: python 29.43s (R=19.92) c++ 0.098s (R=17.15) speed-up 301x
+ms_12_050_000 full_pipeline seed=44: python 17.57s (R=19.24) c++ 0.089s (R=16.06) speed-up 197x
+ms_15_050_000 rgsa seed=42: python 32.76s (R=26.83) c++ 0.127s (R=26.51) speed-up 258x
+ms_15_050_000 rgsa seed=43: python 22.84s (R=28.65) c++ 0.100s (R=26.34) speed-up 228x
+ms_15_050_000 rgsa seed=44: python 48.70s (R=22.34) c++ 0.182s (R=27.24) speed-up 268x
+ms_15_050_000 full_pipeline seed=42: python 28.45s (R=28.02) c++ 0.650s (R=24.78) speed-up 44x
+ms_15_050_000 full_pipeline seed=43: python 63.40s (R=24.98) c++ 0.170s (R=24.78) speed-up 372x
+ms_15_050_000 full_pipeline seed=44: python 25.05s (R=25.90) c++ 0.208s (R=25.98) speed-up 120x
+ms_15_200_000 rgsa seed=42: python 21.39s (R=109.28) c++ 0.096s (R=107.50) speed-up 222x
+ms_15_200_000 rgsa seed=43: python 22.74s (R=104.41) c++ 0.105s (R=109.71) speed-up 217x
+ms_15_200_000 rgsa seed=44: python 22.79s (R=102.87) c++ 0.101s (R=97.72) speed-up 225x
+ms_15_200_000 full_pipeline seed=42: python 21.74s (R=110.06) c++ 0.161s (R=96.62) speed-up 135x
+ms_15_200_000 full_pipeline seed=43: python 21.24s (R=96.12) c++ 0.162s (R=91.10) speed-up 131x
+ms_15_200_000 full_pipeline seed=44: python 21.04s (R=107.03) c++ 0.169s (R=89.57) speed-up 125x
+{
+  "rgsa": {
+    "median_speedup": 262.75994893253403,
+    "min_speedup": 161.4047491394145,
+    "max_speedup": 1329.7535330494447
+  },
+  "full_pipeline": {
+    "median_speedup": 169.83266516999564,
+    "min_speedup": 43.784673107033115,
+    "max_speedup": 490.2756899454381
+  }
+}

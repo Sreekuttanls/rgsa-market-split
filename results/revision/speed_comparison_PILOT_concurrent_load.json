@@ -1,0 +1,289 @@
+{
+  "metadata": {
+    "python": "3.9.6",
+    "numpy": "1.26.4",
+    "machine": "arm64",
+    "platform": "macOS-15.1.1-arm64-arm-64bit",
+    "processor": "arm",
+    "steps": 150000,
+    "compiler_flags": "-std=c++17 -O3 -march=native -ffp-contract=off"
+  },
+  "summary": {
+    "rgsa": {
+      "median_speedup": 219.170330254617,
+      "min_speedup": 153.04862588759,
+      "max_speedup": 530.1660221628773
+    },
+    "full_pipeline": {
+      "median_speedup": 159.30972827932783,
+      "min_speedup": 88.66462986076296,
+      "max_speedup": 518.42122137363
+    }
+  },
+  "runs": [
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "rgsa",
+      "seed": 42,
+      "python_seconds": 102.550808916,
+      "cpp_seconds": 0.19343150000000264,
+      "python_residual": 11.224972160321824,
+      "cpp_residual": 11.35781669
+    },
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "rgsa",
+      "seed": 43,
+      "python_seconds": 35.97190500000001,
+      "cpp_seconds": 0.2350357919999908,
+      "python_residual": 12.206555615733702,
+      "cpp_residual": 11.40175425
+    },
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "rgsa",
+      "seed": 44,
+      "python_seconds": 53.318547042000006,
+      "cpp_seconds": 0.1524387919999981,
+      "python_residual": 11.357816691600547,
+      "cpp_residual": 11.22497216
+    },
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "full_pipeline",
+      "seed": 42,
+      "python_seconds": 49.004666125,
+      "cpp_seconds": 0.10161487499999566,
+      "python_residual": 9.219544457292887,
+      "cpp_residual": 11.09053651
+    },
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "full_pipeline",
+      "seed": 43,
+      "python_seconds": 34.792846459,
+      "cpp_seconds": 0.06711308299998109,
+      "python_residual": 11.313708498984761,
+      "cpp_residual": 10.34408043
+    },
+    {
+      "instance": "ms_09_050_000",
+      "m": 9,
+      "n": 80,
+      "config": "full_pipeline",
+      "seed": 44,
+      "python_seconds": 19.043775916000016,
+      "cpp_seconds": 0.13467191600000206,
+      "python_residual": 9.797958971132712,
+      "cpp_residual": 12.88409873
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "rgsa",
+      "seed": 42,
+      "python_seconds": 27.108411999999987,
+      "cpp_seconds": 0.08563804200002778,
+      "python_residual": 20.12461179749811,
+      "cpp_residual": 19.8242276
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "rgsa",
+      "seed": 43,
+      "python_seconds": 21.888454207999985,
+      "cpp_seconds": 0.07493545799997037,
+      "python_residual": 18.2208671582886,
+      "cpp_residual": 19.05255888
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "rgsa",
+      "seed": 44,
+      "python_seconds": 20.854503625000007,
+      "cpp_seconds": 0.06431716599996662,
+      "python_residual": 18.110770276274835,
+      "cpp_residual": 18.02775638
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "full_pipeline",
+      "seed": 42,
+      "python_seconds": 24.250193500000023,
+      "cpp_seconds": 0.13091099999996914,
+      "python_residual": 19.261360284258224,
+      "cpp_residual": 17.40689519
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "full_pipeline",
+      "seed": 43,
+      "python_seconds": 25.637982792000003,
+      "cpp_seconds": 0.21570100000002412,
+      "python_residual": 19.924858845171276,
+      "cpp_residual": 17.1464282
+    },
+    {
+      "instance": "ms_12_050_000",
+      "m": 12,
+      "n": 110,
+      "config": "full_pipeline",
+      "seed": 44,
+      "python_seconds": 27.906983249999996,
+      "cpp_seconds": 0.11413795799995796,
+      "python_residual": 19.235384061671343,
+      "cpp_residual": 16.0623784
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 42,
+      "python_seconds": 37.245294417000025,
+      "cpp_seconds": 0.20862045900003068,
+      "python_residual": 26.832815729997478,
+      "cpp_residual": 26.51414717
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 43,
+      "python_seconds": 24.661418999999967,
+      "cpp_seconds": 0.1344182919999639,
+      "python_residual": 28.653097563788805,
+      "cpp_residual": 26.34387974
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 44,
+      "python_seconds": 22.642557125000053,
+      "cpp_seconds": 0.10771229200008747,
+      "python_residual": 22.338307903688676,
+      "cpp_residual": 27.23967694
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 42,
+      "python_seconds": 32.152906459000064,
+      "cpp_seconds": 0.21282320799991794,
+      "python_residual": 28.0178514522438,
+      "cpp_residual": 24.77902339
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 43,
+      "python_seconds": 29.410465334000037,
+      "cpp_seconds": 0.21157687499999156,
+      "python_residual": 24.979991993593593,
+      "cpp_residual": 24.77902339
+    },
+    {
+      "instance": "ms_15_050_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 44,
+      "python_seconds": 40.36785862500005,
+      "cpp_seconds": 0.19818833300007554,
+      "python_residual": 25.903667693977237,
+      "cpp_residual": 25.98076211
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 42,
+      "python_seconds": 32.93656858300005,
+      "cpp_seconds": 0.15679229099998793,
+      "python_residual": 109.28403360052191,
+      "cpp_residual": 107.4988372
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 43,
+      "python_seconds": 24.76278616700006,
+      "cpp_seconds": 0.112624667000091,
+      "python_residual": 104.40785411069419,
+      "cpp_residual": 109.7132626
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "rgsa",
+      "seed": 44,
+      "python_seconds": 28.062828707999984,
+      "cpp_seconds": 0.1284512500000119,
+      "python_residual": 102.87370898339381,
+      "cpp_residual": 97.72410143
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 42,
+      "python_seconds": 30.144692624999948,
+      "cpp_seconds": 0.17992379199995412,
+      "python_residual": 110.05907504608605,
+      "cpp_residual": 96.61780374
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 43,
+      "python_seconds": 22.341262750000055,
+      "cpp_seconds": 0.2519749169999841,
+      "python_residual": 96.11971701997463,
+      "cpp_residual": 91.10433579
+    },
+    {
+      "instance": "ms_15_200_000",
+      "m": 15,
+      "n": 140,
+      "config": "full_pipeline",
+      "seed": 44,
+      "python_seconds": 22.711635582999975,
+      "cpp_seconds": 0.1606490000000349,
+      "python_residual": 107.02803371079933,
+      "cpp_residual": 89.5656184
+    }
+  ]
+}

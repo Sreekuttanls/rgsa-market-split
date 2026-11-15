@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Time-limited exact solvers (300\,s, one thread, one run per instance; 4 instances per $(m,D)$ class, 12 per $m$). Exact: instances solved with residual zero; Infeas.: band proven to contain no exact solution; Vector: instances with any vector in the band at the time limit; $\tilde R$: median best residual over instances with a vector.}\label{tab:exact}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{CP-SAT} & \multicolumn{4}{c}{SCIP} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+$m$ & Exact & Infeas. & Vector & $\tilde R$ & Exact & Infeas. & Vector & $\tilde R$ \\
+\midrule
+3 & 12 & 0 & 12 & 0.0 & 12 & 0 & 12 & 0.0 \\
+4 & 12 & 0 & 12 & 0.0 & 12 & 0 & 12 & 0.0 \\
+5 & 1 & 0 & 12 & 2.3 & 0 & 0 & 12 & 3.8 \\
+6 & 0 & 0 & 12 & 3.5 & 0 & 0 & 12 & 6.7 \\
+7 & 0 & 0 & 12 & 7.1 & 0 & 0 & 12 & 13.0 \\
+8 & 0 & 0 & 12 & 9.8 & 0 & 0 & 12 & 18.3 \\
+9 & 0 & 0 & 12 & 14.3 & 0 & 0 & 12 & 27.5 \\
+10 & 0 & 0 & 12 & 23.6 & 0 & 0 & 12 & 35.7 \\
+11 & 0 & 0 & 12 & 26.0 & 0 & 0 & 12 & 43.0 \\
+12 & 0 & 0 & 12 & 33.2 & 0 & 0 & 12 & 45.9 \\
+13 & 0 & 0 & 12 & 38.7 & 0 & 0 & 12 & 54.5 \\
+14 & 0 & 0 & 12 & 46.4 & 0 & 0 & 12 & 75.7 \\
+15 & 0 & 0 & 12 & 138.4 & 0 & 0 & 12 & 84.2 \\
+\bottomrule
+\end{tabular}
+\end{table}

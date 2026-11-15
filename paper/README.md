@@ -16,9 +16,12 @@ python -m src.paper_statistics \
 
 ## Build the manuscript
 
-The journal recommends the Springer Nature LaTeX template. Before submission,
-copy the manuscript into the current Journal of Heuristics template package
-and compile it with the template’s documented toolchain. The source in this
+The revised manuscript is `paper/revision/manuscript.tex`, built with the
+Springer Nature template (`sn-jnl.cls` and `sn-mathphys-num.bst` are in the same
+folder): run `pdflatex manuscript.tex` three times there. Regenerate the tables
+first with `python -m src.revision_statistics`, and fill the page and line
+references of the response letter with `python -m src.render_response`. The
+original manuscript below is kept for reference. The source in this
 repository uses standard LaTeX packages and can be compiled locally when a
 LaTeX distribution is installed:
 

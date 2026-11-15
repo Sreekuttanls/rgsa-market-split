@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Run time of the Python reference and the C++ implementation on identical settings (150{,}000 annealing steps, $q=\lfloor N/2\rfloor$), instances and seeds, one process at a time on an otherwise idle Apple M1. Times and speed-ups are medians and residuals $\bar R$ are means over three seeds.}\label{tab:speed}
+\begin{tabular}{llrrrrr}
+\toprule
+Instance & Variant & Python (s) & C++ (s) & Speed-up & $\bar R$ Python & $\bar R$ C++ \\
+\midrule
+ms\_09\_050\_000 & RGSA & 36.4 & 0.077 & 638 & 11.6 & 11.3 \\
+ms\_09\_050\_000 & Full pipeline & 29.4 & 0.088 & 214 & 10.1 & 11.4 \\
+ms\_12\_050\_000 & RGSA & 18.9 & 0.066 & 285 & 18.8 & 19.0 \\
+ms\_12\_050\_000 & Full pipeline & 24.5 & 0.091 & 269 & 19.5 & 16.9 \\
+ms\_15\_050\_000 & RGSA & 32.8 & 0.127 & 258 & 25.9 & 26.7 \\
+ms\_15\_050\_000 & Full pipeline & 28.4 & 0.208 & 120 & 26.3 & 25.2 \\
+ms\_15\_200\_000 & RGSA & 22.7 & 0.101 & 222 & 105.5 & 105.0 \\
+ms\_15\_200\_000 & Full pipeline & 21.2 & 0.162 & 131 & 104.4 & 92.4 \\
+\bottomrule
+\end{tabular}
+\end{table}

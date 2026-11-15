@@ -1,11 +1,11 @@
 cff-version: 1.2.0
-message: "If you use this software or the associated benchmark analysis, please cite the manuscript and the archived release."
+message: "If you use this software or the associated benchmark analysis, please cite the manuscript."
 authors:
   - family-names: "L. S."
     given-names: "Sreekuttan"
     affiliation: "Bloq Quantum, India"
     email: "sreekuttan@bloq.in"
-title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / Market Split"
+title: "Residual-Guided Exchange Search for Multi-Dimensional Subset Sum / Market Split"
 version: 1.1.0
 date-released: 2026-08-25
 license: MIT
@@ -25,6 +25,7 @@ preferred-citation:
       given-names: "Sreekuttan"
       affiliation: "Bloq Quantum, India"
       email: "sreekuttan@bloq.in"
-  title: "Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum"
-  journal: "Journal of Heuristics"
+  title: "Residual-Guided Exchange Search for Multi-Dimensional Subset Sum: Greedy Restarts versus Simulated Annealing"
+  journal: "Discover Computing"
+  notes: "Under review"
   year: 2026

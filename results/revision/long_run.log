@@ -1,0 +1,16 @@
+long: 480 runs to do (0 already done), ~10.0 h with 4 workers
+[50/480] 65 min elapsed; last ms_14_050_002 rgsa_full s=5 -> time_limit R=17.34935157
+long: 428 runs to do (52 already done), ~8.9 h with 4 workers
+[50/428] 65 min elapsed; last ms_14_100_001 rgsa s=2 -> time_limit R=21.84032967
+[100/428] 125 min elapsed; last ms_14_100_003 greedy s=2 -> time_limit R=22.15851981
+[150/428] 189 min elapsed; last ms_14_200_002 rgsa s=1 -> time_limit R=48.65182422
+[200/428] 249 min elapsed; last ms_15_050_000 greedy s=2 -> time_limit R=13.11487705
+[250/428] 313 min elapsed; last ms_15_050_003 rgsa s=2 -> time_limit R=14.83239697
+[300/428] 373 min elapsed; last ms_15_100_001 greedy s=2 -> time_limit R=26.2297541
+[350/428] 437 min elapsed; last ms_15_200_000 rgsa s=2 -> time_limit R=61.7170965
+[400/428] 692 min elapsed; last ms_15_200_002 greedy s=1 -> time_limit R=63.85922016
+long: 52 runs to do (428 already done), ~1.1 h with 4 workers
+[50/52] 279 min elapsed; last ms_15_200_003 fj s=3 -> time_limit R=113.8859078
+long: 40 runs to do (440 already done), ~0.8 h with 4 workers
+long: 22 runs to do (458 already done), ~0.5 h with 4 workers
+long: 12 runs to do (468 already done), ~0.2 h with 4 workers

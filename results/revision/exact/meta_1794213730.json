@@ -1,0 +1,32 @@
+{
+  "experiment": "exact",
+  "config": {
+    "rgsa": {
+      "p_guide": 0.65,
+      "T0": 600.0,
+      "Tf": 0.001,
+      "band": 2
+    },
+    "blind_sa": {
+      "T0": 600.0,
+      "Tf": 0.001,
+      "band": 2
+    },
+    "neal": {
+      "num_sweeps": 1000
+    },
+    "ga": {
+      "pop_size": 100
+    }
+  },
+  "checkpoint_fractions": [
+    0.1,
+    0.25,
+    0.5,
+    1.0
+  ],
+  "started": "2026-11-09T14:12:10",
+  "python": "3.9.6",
+  "workers": 4,
+  "uname": "Darwin Sreekuttans-MacBook-Air.local 24.1.0 Darwin Kernel Version 24.1.0: Thu Oct 10 21:05:14 PDT 2024; root:xnu-11215.41.3~2/RELEASE_ARM64_T8103 arm64"
+}

@@ -1,0 +1,29 @@
+--- feasibilityjump.orig.hh	2026-11-09 14:01:41
++++ feasibilityjump.hh	2026-11-09 14:01:41
+@@ -491,7 +491,16 @@
+     double weightUpdateIncrement = 1.0;
+ 
+     size_t nBumps = 0;
++
++public:
++    // [rgsa-market-split patch] Read-only observer called once per step with
++    // the current problem state (incumbent assignment and constraint LHS).
++    // It cannot alter the search; it lets the caller record the best
++    // infeasible incumbent, which the unmodified code never exposes.
++    std::function<void(const Problem &)> observer;
+ 
++private:
++
+     // The probability of choosing a random positive-score variable.
+     const double randomVarProbability = 0.001;
+ 
+@@ -542,6 +551,9 @@
+                     printf(FJ_LOG_PREFIX "step %d viol %zd good %zd bumps %zd\n", step, problem.violatedConstraints.size(), goodVarsSet.size(), nBumps);
+             }
+ 
++            if (observer)
++                observer(problem);
++
+             if (problem.violatedConstraints.size() < bestViolationScore)
+             {
+                 effortAtLastImprovement = totalEffort;

@@ -1,8 +1,30 @@
-# Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum / Market Split
+# Residual-Guided Exchange Search for Multi-Dimensional Subset Sum / Market Split
 
-This repository contains the implementation, committed benchmark data, and
-reproduction checks for the manuscript **Residual-Guided Simulated Annealing
-for Multi-Dimensional Subset Sum**, prepared for the *Journal of Heuristics*.
+This repository contains the implementation, the record of every experimental
+run, and the analysis and reproduction checks for the manuscript **Residual-Guided
+Exchange Search for Multi-Dimensional Subset Sum: Greedy Restarts versus
+Simulated Annealing** (submitted to *Discover Computing*; earlier title:
+*Residual-Guided Simulated Annealing for Multi-Dimensional Subset Sum*).
+
+## Revised study (current)
+
+| What | Where |
+|---|---|
+| C++ solvers (RGSA, greedy search, blind SA; Feasibility Jump driver) | `cpp/` (`make -C cpp`) |
+| Python reference implementation | `src/rgsa_solver.py` |
+| Experiment runner (resumable) | `python -m src.run_revision_experiments --experiment main\|ablation\|exact\|long` |
+| External solvers (FJ, QUBO annealing, GA, CP-SAT, SCIP) | `src/external_solvers.py` |
+| Parameter tuning (Optuna) | `python -m src.tune` |
+| Discard runs made under invalid conditions | `python -m src.purge_invalid_runs` |
+| Statistics and generated tables | `python -m src.revision_statistics` → `results/revision/statistics.json`, `paper/revision/tables/` |
+| Confirm exact solutions with the QOBLIB checker | `python -m src.check_exact_solutions` |
+| Check the numbers quoted in the manuscript | `python -m src.verify_manuscript_numbers` |
+| Run records (one JSON line per run) | `results/revision/{main,ablation,exact,long}/runs.jsonl` |
+| Manuscript and response letter | `paper/revision/` |
+
+Tests: `python -m unittest discover -s tests`.
+
+The sections below describe the original study and its committed data.
 
 The author is **Sreekuttan L. S.**, Bloq Quantum, India. Contact:
 `sreekuttan@bloq.in`.
